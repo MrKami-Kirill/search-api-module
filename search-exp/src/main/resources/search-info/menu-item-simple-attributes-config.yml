@@ -1,0 +1,17 @@
+simpleAttributes:
+  - jsonField: id
+    dbField: id
+  - jsonField: title
+    dbField: title
+  - jsonField: path
+    dbField: path
+  - jsonField: isActive
+    dbField: is_active
+  - jsonField: inheritParentPermissions
+    dbField: inherit_parent_permissions
+  - jsonField: availableEveryone
+    dbField: available_everyone
+  - jsonField: createDate
+    dbField: create_date
+  - jsonField: lastUpdateDate
+    dbField: last_update_date

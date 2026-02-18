@@ -1,0 +1,71 @@
+---
+logger:
+  level: \${LOGGER_LEVEL:INFO}
+  name: ${rootProject.name}
+  tags: microservice,java,mvc,${rootProject.name}
+  type: microservices
+  version: ${version}
+
+management:
+  endpoint:
+    env:
+      show-values: never
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: env,info,health,prometheus
+  info:
+    git:
+      mode: full
+
+server:
+  port: \${SERVER_PORT:8087}
+  shutdown: graceful
+
+spring:
+  application:
+    name: ${rootProject.name}
+  banner:
+    location: banner.txt
+
+  datasource:
+    url: jdbc:postgresql://\${POSTGRES_HOST:51.250.112.42}:\${POSTGRES_PORT:5433}/\${POSTGRES_DATASOURCE:db_knowledge_base}?ApplicationName=${rootProject.name}&stringtype=unspecified
+    username: \${POSTGRES_USERNAME:develop}
+    password: \${POSTGRES_PASSWORD:develop}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: \${POSTGRES_HIKARI_MAXIMUM_POOL_SIZE:20}
+      connection-timeout: \${POSTGRES_HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: \${POSTGRES_HIKARI_IDLE_TIMEOUT:600000}
+      max-life-time: \${POSTGRES_HIKARI_MAX_LIFE_TIME:1800000}
+  jpa:
+    show_sql: \${SHOW_SQL:true}
+    open-in-view: false
+    database: default
+    properties:
+      hibernate:
+        show_sql: \${SHOW_SQL:true}
+        enable_lazy_load_no_trans: false
+        default_schema: \${POSTGRES_SCHEMA:db_knowledge_base}
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        properties.hibernate.temp.use_jdbc_metadata_defaults: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  main:
+    web-application-type: servlet
+  profiles:
+    active: \${PROFILE:local}
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local,dev
+management:
+  endpoint:
+    env:
+      show-values: always
