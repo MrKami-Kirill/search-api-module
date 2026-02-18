@@ -57,7 +57,7 @@ public class CodeBlockGenerator {
       }
     }
 
-    return initializer.add("\n)").build();
+    return initializer.add(")").build();
   }
 
   private CodeBlock generateJoinInfoBlock(Set<JoinInfo> joinInfos) {
@@ -76,7 +76,7 @@ public class CodeBlockGenerator {
                 j.joinType().name()
             ))
             .collect(CodeBlock.joining(",\n")))
-        .add("\n)")
+        .add(")")
         .build();
   }
 

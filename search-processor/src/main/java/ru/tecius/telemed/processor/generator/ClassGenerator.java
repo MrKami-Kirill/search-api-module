@@ -3,7 +3,6 @@ package ru.tecius.telemed.processor.generator;
 import static ru.tecius.telemed.processor.util.TypeResolver.createStaticStringField;
 import static ru.tecius.telemed.processor.util.TypeResolver.getInterfaceTypeName;
 
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -57,22 +56,20 @@ public class ClassGenerator {
     classBuilder.addField(createStaticStringField("TABLE_NAME", annotation.table()));
     classBuilder.addField(createStaticStringField("TABLE_ALIAS", annotation.alias()));
 
-    var simpleAttributesBlock = codeBlockGenerator.generateSimpleAttributesBlock(
-        simpleConfigs);
     classBuilder.addField(FieldSpec.builder(
             ParameterizedTypeName.get(Set.class, SimpleSearchAttribute.class),
             "SIMPLE_ATTRIBUTES",
             Modifier.PRIVATE, Modifier.FINAL)
-        .initializer(simpleAttributesBlock)
+        .initializer(codeBlockGenerator.generateSimpleAttributesBlock(
+            simpleConfigs))
         .build());
 
-    CodeBlock multipleAttributesBlock = codeBlockGenerator.generateMultipleAttributesBlock(
-        multipleConfigs);
     classBuilder.addField(FieldSpec.builder(
             ParameterizedTypeName.get(Set.class, MultipleSearchAttribute.class),
             "MULTIPLE_ATTRIBUTES",
             Modifier.PRIVATE, Modifier.FINAL)
-        .initializer(multipleAttributesBlock)
+        .initializer(codeBlockGenerator.generateMultipleAttributesBlock(
+            multipleConfigs))
         .build());
   }
 
