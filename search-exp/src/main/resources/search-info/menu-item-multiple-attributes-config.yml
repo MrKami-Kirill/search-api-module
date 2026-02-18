@@ -1,0 +1,31 @@
+multipleAttributes:
+  - jsonField: attachmentFileName
+    dbField: file_name
+    joinInfo:
+      - order: 1
+        referenceJoinColumn: id
+        joinTable: documents
+        joinTableAlias: d,
+        joinColumn: menu_item_id
+        joinType: LEFT_JOIN
+      - order: 2
+        referenceJoinColumn: id
+        joinTable: document_attachments
+        joinTableAlias: da,
+        joinColumn: document_id
+        joinType: LEFT_JOIN
+  - jsonField: attachmentExtension
+    dbField: extension
+    joinInfo:
+      - order: 1
+        referenceJoinColumn: id
+        joinTable: documents
+        joinTableAlias: d,
+        joinColumn: menu_item_id
+        joinType: LEFT_JOIN
+      - order: 2
+        referenceJoinColumn: id
+        joinTable: document_attachments
+        joinTableAlias: da,
+        joinColumn: document_id
+        joinType: LEFT_JOIN

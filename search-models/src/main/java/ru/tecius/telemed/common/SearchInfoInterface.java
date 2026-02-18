@@ -1,6 +1,6 @@
 package ru.tecius.telemed.common;
 
-import java.util.List;
+import java.util.Set;
 import ru.tecius.telemed.configuration.MultipleSearchAttribute;
 import ru.tecius.telemed.configuration.SimpleSearchAttribute;
 
@@ -12,8 +12,8 @@ public interface SearchInfoInterface<E> {
 
   String getTableAlias();
 
-  List<SimpleSearchAttribute> getSimpleAttributes();
+  Set<SimpleSearchAttribute> getSimpleAttributes();
 
-  //List<MultipleSearchAttribute> getMultipleAttributes();
+  Set<MultipleSearchAttribute> getMultipleAttributes();
 
 }

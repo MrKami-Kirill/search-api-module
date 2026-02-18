@@ -42,6 +42,9 @@ import ru.tecius.telemed.annotation.SearchInfo;
     alias = "mi",
     simpleAttributePaths = {
         "menu-item-simple-attributes-config.yml"
+    },
+    multipleAttributePaths = {
+        "menu-item-multiple-attributes-config.yml"
     })
 public class MenuItemEntity {
 
