@@ -1,6 +1,7 @@
 package ru.tecius.telemed.processor;
 
 import static java.nio.file.Files.exists;
+import static java.util.Comparator.comparing;
 import static java.util.Objects.nonNull;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
@@ -33,7 +35,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
 import ru.tecius.telemed.annotation.SearchInfo;
@@ -72,20 +73,15 @@ public class SearchInfoProcessor extends AbstractProcessor {
     var className = typeElement.getSimpleName() + "SearchInfo";
     var packageName = processingEnv.getElementUtils().getPackageOf(typeElement).toString();
 
-    // 1. Создаем основной класс
-    TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className)
+    var classBuilder = TypeSpec.classBuilder(className)
         .addModifiers(Modifier.PUBLIC)
         .addAnnotation(Component.class)
-        .addAnnotation(RequiredArgsConstructor.class)
         .addSuperinterface(getInterfaceTypeName(typeElement));
 
-    // 2. Базовые поля: SCHEMA_NAME, TABLE_NAME, TABLE_ALIAS
     addStaticConstants(classBuilder, annotation, new ObjectMapper());
 
-    // 3. Добавляем методы интерфейса
     addInterfaceMethods(classBuilder);
 
-    // 4. Запись файла
     try {
       JavaFile.builder(packageName, classBuilder.build())
           .build()
@@ -132,11 +128,33 @@ public class SearchInfoProcessor extends AbstractProcessor {
         .addStatement("return SIMPLE_ATTRIBUTES")
         .build());
 
+    classBuilder.addMethod(MethodSpec.methodBuilder("getSimpleAttributeByJsonField")
+        .addParameter(String.class, "jsonField")
+        .addAnnotation(Override.class)
+        .addModifiers(Modifier.PUBLIC)
+        .returns(ParameterizedTypeName.get(Optional.class, SimpleSearchAttribute.class))
+        .addStatement("""
+            return SIMPLE_ATTRIBUTES.stream()
+                    .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
+                    .findAny()""")
+        .build());
+
     classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributes")
         .addAnnotation(Override.class)
         .addModifiers(Modifier.PUBLIC)
         .returns(ParameterizedTypeName.get(Set.class, MultipleSearchAttribute.class))
         .addStatement("return MULTIPLE_ATTRIBUTES")
+        .build());
+
+    classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributeByJsonField")
+        .addParameter(String.class, "jsonField")
+        .addAnnotation(Override.class)
+        .addModifiers(Modifier.PUBLIC)
+        .returns(ParameterizedTypeName.get(Optional.class, MultipleSearchAttribute.class))
+        .addStatement("""
+            return MULTIPLE_ATTRIBUTES.stream()
+                    .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
+                    .findAny()""")
         .build());
   }
 
@@ -178,7 +196,7 @@ public class SearchInfoProcessor extends AbstractProcessor {
     var simpleAttributesSize = simpleAttributes.size();
     for (var i = 0; i < simpleAttributesSize; i++) {
       var simpleAttribute = simpleAttributes.get(i);
-      initializer.add("new $T($S, $S)", SimpleSearchAttribute.class,
+      initializer.add("\tnew $T($S, $S)", SimpleSearchAttribute.class,
           simpleAttribute.jsonField(), simpleAttribute.dbField());
       if (i < simpleAttributesSize - 1) {
         initializer.add(",\n");
@@ -211,7 +229,8 @@ public class SearchInfoProcessor extends AbstractProcessor {
       CodeBlock joinsBlock = CodeBlock.builder()
           .add("$T.of(\n", Set.class)
           .add(attr.joinInfo().stream()
-              .map(j -> CodeBlock.of("new $T($L, $S, $S, $S, $S, $T.$L)",
+              .sorted(comparing(JoinInfo::order))
+              .map(j -> CodeBlock.of("\t\tnew $T($L, $S, $S, $S, $S, $T.$L)",
                   JoinInfo.class,
                   j.order(),                  // Integer
                   j.referenceJoinColumn(),    // String
@@ -225,7 +244,7 @@ public class SearchInfoProcessor extends AbstractProcessor {
           .add("\n)")
           .build();
 
-      initializer.add("    new $T($S, $S, $L)",
+      initializer.add("\tnew $T($S, $S, $L)",
           MultipleSearchAttribute.class,
           attr.jsonField(),
           attr.dbField(),
