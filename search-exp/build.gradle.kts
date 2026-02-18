@@ -8,7 +8,6 @@ dependencies {
     annotationProcessor(project(":search-processor"))
 }
 
-// Ensure resources are processed before compilation so annotation processor can access them
 tasks.compileJava {
     dependsOn(tasks.processResources)
     options.compilerArgs.add("-Asearch.info.resources.dir=${project.projectDir}/src/main/resources")
