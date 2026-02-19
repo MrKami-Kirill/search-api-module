@@ -25,15 +25,15 @@ public record MultipleSearchAttribute(
   @AssertTrue(message = "Поле multipleAttributes.dbTableAlias должно совпадать с последним "
       + "multipleAttributes.joinInfo.join.alias")
   public boolean isDbTableAliasValid() {
-    return ofNullable(joinInfo)
+    return ofNullable(joinInfo())
         .map(LinkedHashSet::getLast)
         .filter(Objects::nonNull)
         .map(JoinInfo::join)
-        .anyMatch(join -> Objects.equals(join.alias(), this.dbTableAlias));
+        .anyMatch(join -> Objects.equals(join.alias(), dbTableAlias()));
   }
 
   public String getFullDbFieldName() {
-    return "%s.%s".formatted(this.dbTableAlias, this.dbField);
+    return "%s.%s".formatted(dbTableAlias(), dbField());
   }
 
 }

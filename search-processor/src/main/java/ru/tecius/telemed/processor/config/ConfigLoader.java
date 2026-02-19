@@ -17,7 +17,7 @@ import org.yaml.snakeyaml.Yaml;
 import ru.tecius.telemed.configuration.MultipleSearchAttributeConfig;
 import ru.tecius.telemed.configuration.SimpleSearchAttributeConfig;
 import ru.tecius.telemed.processor.error.ErrorHandler;
-import ru.tecius.telemed.processor.exception.ProcessingException;
+import ru.tecius.telemed.exception.ProcessingException;
 import ru.tecius.telemed.processor.validator.ValidationHandler;
 
 public class ConfigLoader {

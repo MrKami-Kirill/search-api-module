@@ -15,7 +15,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import ru.tecius.telemed.processor.error.ErrorHandler;
-import ru.tecius.telemed.processor.exception.ValidationException;
+import ru.tecius.telemed.exception.ValidationException;
 
 /**
  * Обработчик валидации DTO объектов. Проверяет валидность объектов используя Spring и Jakarta

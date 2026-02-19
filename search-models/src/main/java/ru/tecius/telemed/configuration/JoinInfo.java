@@ -17,4 +17,11 @@ public record JoinInfo(
     JoinTypeEnum type
 ) {
 
+  public String createJoinString() {
+    return "%s %s AS %s ON %s.%s = %s.%s".formatted(type().getValue(),
+        join().table(), join().alias(),
+        reference().alias(), reference().column(),
+        join().alias(), join().column());
+  }
+
 }

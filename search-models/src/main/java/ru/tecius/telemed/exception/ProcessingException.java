@@ -1,4 +1,4 @@
-package ru.tecius.telemed.processor.exception;
+package ru.tecius.telemed.exception;
 
 public class ProcessingException extends RuntimeException {
 
