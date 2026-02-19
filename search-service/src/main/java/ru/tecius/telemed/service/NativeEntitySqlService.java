@@ -25,8 +25,7 @@ public class NativeEntitySqlService<E> extends AbstractNativeSqlSqlService<E> {
   }
 
   @SuppressWarnings("unchecked")
-  public SearchResponseDto<E> search(List<SearchDataDto> searchData,
-      LinkedList<SortDto> sort,
+  public SearchResponseDto<E> search(List<SearchDataDto> searchData, LinkedList<SortDto> sort,
       PaginationDto pagination) {
     return search(searchData, sort, pagination,
         (countSql, params) -> {

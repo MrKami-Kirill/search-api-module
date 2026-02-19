@@ -14,8 +14,8 @@ import java.util.List;
 import javax.annotation.processing.ProcessingEnvironment;
 import org.springframework.validation.Validator;
 import org.yaml.snakeyaml.Yaml;
-import ru.tecius.telemed.configuration.MultipleSearchAttributeConfig;
-import ru.tecius.telemed.configuration.SimpleSearchAttributeConfig;
+import ru.tecius.telemed.configuration.CriteriaSearchAttributeConfig;
+import ru.tecius.telemed.configuration.NativeSearchAttributeConfig;
 import ru.tecius.telemed.processor.error.ErrorHandler;
 import ru.tecius.telemed.exception.ProcessingException;
 import ru.tecius.telemed.processor.validator.ValidationHandler;
@@ -25,33 +25,33 @@ public class ConfigLoader {
   private final ProcessingEnvironment processingEnv;
   private final ObjectMapper objectMapper;
   private final ErrorHandler errorHandler;
-  private final ValidationHandler<SimpleSearchAttributeConfig> simpleConfigValidator;
-  private final ValidationHandler<MultipleSearchAttributeConfig> multipleConfigValidator;
+  private final ValidationHandler<NativeSearchAttributeConfig> nativeConfigValidator;
+  private final ValidationHandler<CriteriaSearchAttributeConfig> criteriaConfigValidator;
 
   public ConfigLoader(ProcessingEnvironment processingEnv, Validator validator) {
     this.processingEnv = processingEnv;
     this.objectMapper = new ObjectMapper();
     this.errorHandler = new ErrorHandler(processingEnv.getMessager());
-    this.simpleConfigValidator = new ValidationHandler<>(validator, this.errorHandler);
-    this.multipleConfigValidator = new ValidationHandler<>(validator, this.errorHandler);
+    this.nativeConfigValidator = new ValidationHandler<>(validator, this.errorHandler);
+    this.criteriaConfigValidator = new ValidationHandler<>(validator, this.errorHandler);
   }
 
-  public List<SimpleSearchAttributeConfig> loadSimpleConfigs(String[] paths) {
-    var configs = new ArrayList<SimpleSearchAttributeConfig>();
+  public List<NativeSearchAttributeConfig> loadNativeConfigs(String[] paths) {
+    var configs = new ArrayList<NativeSearchAttributeConfig>();
     for (var path : paths) {
-      configs.add(simpleConfigValidator.validate(
+      configs.add(nativeConfigValidator.validate(
           loadConfig(SEARCH_INFO_PATH_TEMPLATE.formatted(path),
-              SimpleSearchAttributeConfig.class)));
+              NativeSearchAttributeConfig.class)));
     }
     return configs;
   }
 
-  public List<MultipleSearchAttributeConfig> loadMultipleConfigs(String[] paths) {
-    var configs = new ArrayList<MultipleSearchAttributeConfig>();
+  public List<CriteriaSearchAttributeConfig> loadCriteriaConfigs(String[] paths) {
+    var configs = new ArrayList<CriteriaSearchAttributeConfig>();
     for (var path : paths) {
-      configs.add(multipleConfigValidator.validate(
+      configs.add(criteriaConfigValidator.validate(
           loadConfig(SEARCH_INFO_PATH_TEMPLATE.formatted(path),
-              MultipleSearchAttributeConfig.class)));
+              CriteriaSearchAttributeConfig.class)));
     }
     return configs;
   }

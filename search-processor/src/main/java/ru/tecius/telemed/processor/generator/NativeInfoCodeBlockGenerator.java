@@ -1,35 +1,39 @@
 package ru.tecius.telemed.processor.generator;
 
 import static java.util.Comparator.comparing;
+import static org.apache.commons.collections4.CollectionUtils.isEmpty;
+import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import ru.tecius.telemed.configuration.AttributeType;
 import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.configuration.JoinData;
 import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.configuration.JoinReferenceData;
-import ru.tecius.telemed.configuration.MultipleSearchAttribute;
-import ru.tecius.telemed.configuration.MultipleSearchAttributeConfig;
-import ru.tecius.telemed.configuration.SimpleSearchAttribute;
-import ru.tecius.telemed.configuration.SimpleSearchAttributeConfig;
+import ru.tecius.telemed.configuration.NativeSearchAttribute;
+import ru.tecius.telemed.configuration.NativeSearchAttributeConfig;
 import ru.tecius.telemed.enumeration.JoinTypeEnum;
 
-public class CodeBlockGenerator {
+public class NativeInfoCodeBlockGenerator {
 
-  public CodeBlock generateSimpleAttributesBlock(List<SimpleSearchAttributeConfig> configs) {
+  public CodeBlock generateSimpleAttributesBlock(List<NativeSearchAttributeConfig> configs) {
     var initializer = CodeBlock.builder().add("$T.of(\n", Set.class);
     var simpleAttributes = configs.stream()
-        .map(SimpleSearchAttributeConfig::simpleAttributes)
+        .map(NativeSearchAttributeConfig::attributes)
         .flatMap(Collection::stream)
+        .filter(attr -> isEmpty(attr.joinInfo()))
         .toList();
 
     for (var i = 0; i < simpleAttributes.size(); i++) {
       var attr = simpleAttributes.get(i);
-      initializer.add("\tnew $T($S, $S, $T.$L)",
-          SimpleSearchAttribute.class,
+      initializer.add("\tnew $T($T.$L, $S, $S, null, $T.$L, null)",
+          NativeSearchAttribute.class,
+          AttributeType.class,
+          attr.attributeType(),
           attr.jsonField(),
           attr.dbField(),
           FieldType.class,
@@ -43,19 +47,22 @@ public class CodeBlockGenerator {
     return initializer.build();
   }
 
-  public CodeBlock generateMultipleAttributesBlock(List<MultipleSearchAttributeConfig> configs) {
+  public CodeBlock generateMultipleAttributesBlock(List<NativeSearchAttributeConfig> configs) {
     var initializer = CodeBlock.builder().add("$T.of(\n", Set.class);
     var multipleAttributes = configs.stream()
-        .map(MultipleSearchAttributeConfig::multipleAttributes)
+        .map(NativeSearchAttributeConfig::attributes)
         .flatMap(Collection::stream)
+        .filter(attr -> isNotEmpty(attr.joinInfo()))
         .toList();
 
     for (var i = 0; i < multipleAttributes.size(); i++) {
       var attr = multipleAttributes.get(i);
       var joinsBlock = generateJoinInfoBlock(attr.joinInfo());
 
-      initializer.add("\tnew $T($S, $S, $S, $T.$L, $L)",
-          MultipleSearchAttribute.class,
+      initializer.add("\tnew $T($T.$L, $S, $S, $S, $T.$L, $L)",
+          NativeSearchAttribute.class,
+          AttributeType.class,
+          attr.attributeType(),
           attr.jsonField(),
           attr.dbField(),
           attr.dbTableAlias(),

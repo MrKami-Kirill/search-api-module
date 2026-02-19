@@ -3,8 +3,7 @@ package ru.tecius.telemed.common;
 import java.util.Optional;
 import java.util.Set;
 import ru.tecius.telemed.configuration.JoinInfo;
-import ru.tecius.telemed.configuration.MultipleSearchAttribute;
-import ru.tecius.telemed.configuration.SimpleSearchAttribute;
+import ru.tecius.telemed.configuration.NativeSearchAttribute;
 
 public interface SearchInfoInterface<E> {
 
@@ -16,13 +15,13 @@ public interface SearchInfoInterface<E> {
 
   String getFullTableName();
 
-  Set<SimpleSearchAttribute> getSimpleAttributes();
+  Set<NativeSearchAttribute> getSimpleAttributes();
 
-  Optional<SimpleSearchAttribute> getSimpleAttributeByJsonField(String jsonField);
+  Optional<NativeSearchAttribute> getSimpleAttributeByJsonField(String jsonField);
 
-  Set<MultipleSearchAttribute> getMultipleAttributes();
+  Set<NativeSearchAttribute> getMultipleAttributes();
 
-  Optional<MultipleSearchAttribute> getMultipleAttributeByJsonField(String jsonField);
+  Optional<NativeSearchAttribute> getMultipleAttributeByJsonField(String jsonField);
 
   String createJoinString(JoinInfo joinInfo);
 

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.tecius.telemed.dto.request.SearchRequestDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.entity.MenuItemEntity;
+import ru.tecius.telemed.entity.MenuItemEntityCriteriaInfo;
 import ru.tecius.telemed.entity.MenuItemEntitySearchInfo;
 
 @Service
@@ -21,11 +22,13 @@ public class MenuItemService {
 
   private final JdbcNativeSqlService<MenuItemEntity> jdbcNativeSqlService;
   private final NativeEntitySqlService<MenuItemEntity> nativeEntitySqlService;
+  private final CriteriaEntityService<MenuItemEntity> criteriaEntityService;
   private final ObjectMapper objectMapper;
 
   public MenuItemService(JdbcTemplate jdbcTemplate,
       EntityManager entityManager,
       MenuItemEntitySearchInfo menuItemEntitySearchInfo,
+      MenuItemEntityCriteriaInfo menuItemEntityCriteriaInfo,
       ObjectMapper objectMapper) {
     var menuItemRowMapper = new RowMapper<MenuItemEntity>() {
       @Override
@@ -51,6 +54,11 @@ public class MenuItemService {
         MenuItemEntity.class,
         entityManager,
         menuItemEntitySearchInfo
+    );
+    // Criteria API сервис с поддержкой Entity Graph
+    this.criteriaEntityService = new CriteriaEntityService<>(
+        entityManager,
+        menuItemEntityCriteriaInfo
     );
     this.objectMapper = objectMapper;
   }
@@ -92,15 +100,22 @@ public class MenuItemService {
             {
               "attribute": "createDate",
               "value": [
-                "2026-03-12T09:00:00+03:00"
+                "2026-02-12T09:00:00+03:00"
               ],
               "operator": "MORE_OR_EQUAL"
             }
           ]
         }
         """, SearchRequestDto.class);
-    var result1 =  jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    // Пример 1: JDBC Native SQL
+    var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+
+    // Пример 2: JPA Native SQL
     var result2 = nativeEntitySqlService.search(request.searchData(), request.sort(), request.pagination());
-    return result2;
+
+    // Пример 3: Criteria API
+    var result3 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination());
+
+    return result3;
   }
 }

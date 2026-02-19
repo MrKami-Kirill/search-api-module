@@ -1,8 +1,8 @@
 package ru.tecius.telemed.processor.generator;
 
 import static ru.tecius.telemed.processor.util.TypeResolver.createStaticStringField;
-import static ru.tecius.telemed.processor.util.TypeResolver.getInterfaceTypeName;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -12,31 +12,34 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import lombok.RequiredArgsConstructor;
 import ru.tecius.telemed.annotation.SearchInfo;
-import ru.tecius.telemed.configuration.MultipleSearchAttribute;
-import ru.tecius.telemed.configuration.MultipleSearchAttributeConfig;
-import ru.tecius.telemed.configuration.SimpleSearchAttribute;
-import ru.tecius.telemed.configuration.SimpleSearchAttributeConfig;
+import ru.tecius.telemed.common.SearchInfoInterface;
+import ru.tecius.telemed.configuration.NativeSearchAttribute;
+import ru.tecius.telemed.configuration.NativeSearchAttributeConfig;
 
 @RequiredArgsConstructor
-public class ClassGenerator {
+public class NativeInfoClassGenerator {
 
-  private final MethodGenerator methodGenerator = new MethodGenerator();
-  private final CodeBlockGenerator codeBlockGenerator = new CodeBlockGenerator();
+  private final NativeInfoMethodGenerator nativeInfoMethodGenerator = new NativeInfoMethodGenerator();
+  private final NativeInfoCodeBlockGenerator nativeInfoCodeBlockGenerator = new NativeInfoCodeBlockGenerator();
 
   public TypeSpec generateClassSpec(
       TypeElement typeElement,
       SearchInfo annotation,
-      List<SimpleSearchAttributeConfig> simpleConfigs,
-      List<MultipleSearchAttributeConfig> multipleConfigs
+      List<NativeSearchAttributeConfig> configs
   ) {
+
+    var entityClassName = ClassName.get(typeElement);
+    var searchInfoInterface = ParameterizedTypeName.get(
+        ClassName.get(SearchInfoInterface.class),
+        entityClassName);
 
     var classBuilder = TypeSpec.classBuilder(getClassName(typeElement))
         .addModifiers(Modifier.PUBLIC)
         .addAnnotation(org.springframework.stereotype.Component.class)
-        .addSuperinterface(getInterfaceTypeName(typeElement));
+        .addSuperinterface(searchInfoInterface);
 
-    addStaticConstants(classBuilder, annotation, simpleConfigs, multipleConfigs);
-    methodGenerator.addInterfaceMethods(classBuilder);
+    addStaticConstants(classBuilder, annotation, configs);
+    nativeInfoMethodGenerator.addInterfaceMethods(classBuilder);
 
     return classBuilder.build();
   }
@@ -48,8 +51,7 @@ public class ClassGenerator {
   private void addStaticConstants(
       TypeSpec.Builder classBuilder,
       SearchInfo annotation,
-      List<SimpleSearchAttributeConfig> simpleConfigs,
-      List<MultipleSearchAttributeConfig> multipleConfigs
+      List<NativeSearchAttributeConfig> configs
   ) {
 
     classBuilder.addField(createStaticStringField("SCHEMA_NAME", annotation.schema()));
@@ -57,19 +59,19 @@ public class ClassGenerator {
     classBuilder.addField(createStaticStringField("TABLE_ALIAS", annotation.alias()));
 
     classBuilder.addField(FieldSpec.builder(
-            ParameterizedTypeName.get(Set.class, SimpleSearchAttribute.class),
+            ParameterizedTypeName.get(Set.class, NativeSearchAttribute.class),
             "SIMPLE_ATTRIBUTES",
             Modifier.PRIVATE, Modifier.FINAL)
-        .initializer(codeBlockGenerator.generateSimpleAttributesBlock(
-            simpleConfigs))
+        .initializer(nativeInfoCodeBlockGenerator.generateSimpleAttributesBlock(
+            configs))
         .build());
 
     classBuilder.addField(FieldSpec.builder(
-            ParameterizedTypeName.get(Set.class, MultipleSearchAttribute.class),
+            ParameterizedTypeName.get(Set.class, NativeSearchAttribute.class),
             "MULTIPLE_ATTRIBUTES",
             Modifier.PRIVATE, Modifier.FINAL)
-        .initializer(codeBlockGenerator.generateMultipleAttributesBlock(
-            multipleConfigs))
+        .initializer(nativeInfoCodeBlockGenerator.generateMultipleAttributesBlock(
+            configs))
         .build());
   }
 

@@ -40,11 +40,11 @@ import ru.tecius.telemed.annotation.SearchInfo;
 @SearchInfo(schema = "db_knowledge_base",
     table = "menu_items",
     alias = "mi",
-    simpleAttributePaths = {
-        "menu-item-simple-attributes-config.yml"
+    nativeAttributePaths = {
+        "menu-item-native-attributes-config.yml"
     },
-    multipleAttributePaths = {
-        "menu-item-multiple-attributes-config.yml"
+    criteriaAttributePaths = {
+        "menu-item-criteria-attributes-config.yml"
     })
 public class MenuItemEntity {
 

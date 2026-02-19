@@ -18,7 +18,8 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import ru.tecius.telemed.annotation.SearchInfo;
 import ru.tecius.telemed.processor.config.ConfigLoader;
 import ru.tecius.telemed.processor.error.ErrorHandler;
-import ru.tecius.telemed.processor.generator.ClassGenerator;
+import ru.tecius.telemed.processor.generator.NativeInfoClassGenerator;
+import ru.tecius.telemed.processor.generator.CriteriaInfoClassGenerator;
 import ru.tecius.telemed.processor.util.ProcessorConstants;
 
 @AutoService(Processor.class)
@@ -27,7 +28,8 @@ import ru.tecius.telemed.processor.util.ProcessorConstants;
 public class SearchInfoProcessor extends AbstractProcessor {
 
   private ConfigLoader configLoader;
-  private ClassGenerator classGenerator;
+  private NativeInfoClassGenerator nativeInfoClassGenerator;
+  private CriteriaInfoClassGenerator criteriaInfoClassGenerator;
   private ErrorHandler errorHandler;
 
   @Override
@@ -52,7 +54,8 @@ public class SearchInfoProcessor extends AbstractProcessor {
       var factoryBean = new LocalValidatorFactoryBean();
       factoryBean.afterPropertiesSet();
       configLoader = new ConfigLoader(processingEnv, factoryBean);
-      classGenerator = new ClassGenerator();
+      nativeInfoClassGenerator = new NativeInfoClassGenerator();
+      criteriaInfoClassGenerator = new CriteriaInfoClassGenerator();
       errorHandler = new ErrorHandler(processingEnv.getMessager());
     }
   }
@@ -61,15 +64,29 @@ public class SearchInfoProcessor extends AbstractProcessor {
     try {
       var annotation = typeElement.getAnnotation(SearchInfo.class);
       var packageName = processingEnv.getElementUtils().getPackageOf(typeElement).toString();
+      var nativeAttributesPath = annotation.nativeAttributePaths();
+      if (nativeAttributesPath.length > 0) {
+        var nativeConfigs = configLoader.loadNativeConfigs(nativeAttributesPath);
 
-      var simpleConfigs = configLoader.loadSimpleConfigs(annotation.simpleAttributePaths());
-      var multipleConfigs = configLoader.loadMultipleConfigs(annotation.multipleAttributePaths());
+        var nativeClassSpec = nativeInfoClassGenerator.generateClassSpec(typeElement, annotation,
+            nativeConfigs);
 
-      var classSpec = classGenerator.generateClassSpec(typeElement, annotation, simpleConfigs, multipleConfigs);
+        JavaFile.builder(packageName, nativeClassSpec)
+            .build()
+            .writeTo(processingEnv.getFiler());
+      }
 
-      JavaFile.builder(packageName, classSpec)
-          .build()
-          .writeTo(processingEnv.getFiler());
+      var criteriaAttributePaths = annotation.criteriaAttributePaths();
+      if (criteriaAttributePaths.length > 0) {
+        var criteriaConfigs = configLoader.loadCriteriaConfigs(criteriaAttributePaths);
+
+        var criteriaClassSpec = criteriaInfoClassGenerator.generateClassSpec(typeElement,
+            criteriaConfigs);
+
+        JavaFile.builder(packageName, criteriaClassSpec)
+            .build()
+            .writeTo(processingEnv.getFiler());
+      }
     } catch (IOException ex) {
       errorHandler.reportError("Filer Error: %s".formatted(ex.getMessage()));
     }

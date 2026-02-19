@@ -1,0 +1,76 @@
+package ru.tecius.telemed.processor.generator;
+
+import static javax.lang.model.element.Modifier.PUBLIC;
+
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeSpec;
+import java.util.Optional;
+import java.util.Set;
+import ru.tecius.telemed.configuration.CriteriaJoinInfo;
+import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
+
+/**
+ * Генератор методов для CriteriaInfoInterface.
+ */
+public class CriteriaInfoMethodGenerator {
+
+  public void addInterfaceMethods(TypeSpec.Builder classBuilder, ClassName entityClass) {
+    addGetEntityClassMethod(classBuilder);
+    addGetCriteriaAttributesMethod(classBuilder);
+    addGetCriteriaAttributeByJsonFieldMethod(classBuilder);
+    addGetAllJoinsMethod(classBuilder);
+    addHasAttributeMethod(classBuilder);
+  }
+
+  private void addGetEntityClassMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getEntityClass")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(ParameterizedTypeName.get(Class.class))
+        .addStatement("return ENTITY_CLASS")
+        .build());
+  }
+
+  private void addGetCriteriaAttributesMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getCriteriaAttributes")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(ParameterizedTypeName.get(Set.class, CriteriaSearchAttribute.class))
+        .addStatement("return CRITERIA_ATTRIBUTES")
+        .build());
+  }
+
+  private void addGetCriteriaAttributeByJsonFieldMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getCriteriaAttributeByJsonField")
+        .addParameter(String.class, "jsonField")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(ParameterizedTypeName.get(Optional.class, CriteriaSearchAttribute.class))
+        .addStatement("""
+            return CRITERIA_ATTRIBUTES.stream()
+                    .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
+                    .findAny()""")
+        .build());
+  }
+
+  private void addGetAllJoinsMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getAllJoins")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(ParameterizedTypeName.get(Set.class, CriteriaJoinInfo.class))
+        .addStatement("return ALL_JOINS")
+        .build());
+  }
+
+  private void addHasAttributeMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("hasAttribute")
+        .addParameter(String.class, "jsonField")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(boolean.class)
+        .addStatement("return getCriteriaAttributeByJsonField(jsonField).isPresent()")
+        .build());
+  }
+}

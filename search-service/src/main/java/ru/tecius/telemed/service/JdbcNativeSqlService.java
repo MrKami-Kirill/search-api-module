@@ -25,8 +25,7 @@ public class JdbcNativeSqlService<E> extends AbstractNativeSqlSqlService<E> {
     this.rowMapper = rowMapper;
   }
 
-  public SearchResponseDto<E> search(List<SearchDataDto> searchData,
-      LinkedList<SortDto> sort,
+  public SearchResponseDto<E> search(List<SearchDataDto> searchData, LinkedList<SortDto> sort,
       PaginationDto pagination) {
     return search(searchData, sort, pagination,
         (countSql, params) -> jdbcTemplate.queryForObject(countSql,

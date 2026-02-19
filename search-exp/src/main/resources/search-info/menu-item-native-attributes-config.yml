@@ -1,5 +1,38 @@
-multipleAttributes:
-  - jsonField: attachmentFileName
+attributes:
+  - attributeType: SIMPLE
+    jsonField: id
+    dbField: id
+    fieldType: NUMERIC
+  - attributeType: SIMPLE
+    jsonField: title
+    dbField: title
+    fieldType: STRING
+  - attributeType: SIMPLE
+    jsonField: path
+    dbField: path
+    fieldType: STRING
+  - attributeType: SIMPLE
+    jsonField: isActive
+    dbField: is_active
+    fieldType: BOOLEAN
+  - attributeType: SIMPLE
+    jsonField: inheritParentPermissions
+    dbField: inherit_parent_permissions
+    fieldType: BOOLEAN
+  - attributeType: SIMPLE
+    jsonField: availableEveryone
+    dbField: available_everyone
+    fieldType: BOOLEAN
+  - attributeType: SIMPLE
+    jsonField: createDate
+    dbField: create_date
+    fieldType: OFFSET_DATE_TIME
+  - attributeType: SIMPLE
+    jsonField: lastUpdateDate
+    dbField: last_update_date
+    fieldType: OFFSET_DATE_TIME
+  - attributeType: MULTIPLE
+    jsonField: attachmentFileName
     dbField: file_name
     dbTableAlias: da
     fieldType: STRING
@@ -24,7 +57,8 @@ multipleAttributes:
           alias: da
           column: document_id
         type: LEFT_JOIN
-  - jsonField: attachmentExtension
+  - attributeType: MULTIPLE
+    jsonField: attachmentExtension
     dbField: extension
     dbTableAlias: da
     fieldType: STRING
@@ -49,7 +83,8 @@ multipleAttributes:
           alias: da
           column: document_id
         type: LEFT_JOIN
-  - jsonField: documentId
+  - attributeType: MULTIPLE
+    jsonField: documentId
     dbField: id
     dbTableAlias: d
     fieldType: NUMERIC

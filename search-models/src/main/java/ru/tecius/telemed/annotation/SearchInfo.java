@@ -16,8 +16,12 @@ public @interface SearchInfo {
 
   String alias();
 
-  String[] simpleAttributePaths() default {};
+  String[] nativeAttributePaths() default {};
 
-  String[] multipleAttributePaths() default {};
+  /**
+   * Пути к YML файлам с конфигурацией Criteria API атрибутов.
+   * Используется для построения динамических запросов через JPA Criteria API.
+   */
+  String[] criteriaAttributePaths() default {};
 
 }

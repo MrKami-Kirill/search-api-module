@@ -1,0 +1,149 @@
+attributes:
+  # === Прямые поля MenuItemEntity ===
+  - jsonField: id
+    entityPath: id
+    fieldType: NUMERIC
+
+  - jsonField: title
+    entityPath: title
+    fieldType: STRING
+
+  - jsonField: path
+    entityPath: path
+    fieldType: STRING
+
+  - jsonField: isActive
+    entityPath: isActive
+    fieldType: BOOLEAN
+
+  - jsonField: inheritParentPermissions
+    entityPath: inheritParentPermissions
+    fieldType: BOOLEAN
+
+  - jsonField: availableEveryone
+    entityPath: availableEveryone
+    fieldType: BOOLEAN
+
+  - jsonField: createDate
+    entityPath: createDate
+    fieldType: OFFSET_DATE_TIME
+
+  - jsonField: lastUpdateDate
+    entityPath: lastUpdateDate
+    fieldType: OFFSET_DATE_TIME
+
+  # === @OneToOne связи ===
+  # MenuItemEntity -> DocumentEntity (поле "document")
+  - jsonField: documentId
+    entityPath: document.id
+    fieldType: NUMERIC
+    joinInfo:
+      - path: document        # Имя поля в MenuItemEntity
+        alias: doc            # Уникальный alias для этого join'а
+        type: LEFT
+
+  - jsonField: documentAllowComments
+    entityPath: document.allowComments
+    fieldType: BOOLEAN
+    joinInfo:
+      - path: document
+        alias: doc
+        type: LEFT
+
+  - jsonField: documentVersion
+    entityPath: document.version
+    fieldType: NUMERIC
+    joinInfo:
+      - path: document
+        alias: doc
+        type: LEFT
+
+  - jsonField: documentState
+    entityPath: document.state
+    fieldType: STRING
+    joinInfo:
+      - path: document
+        alias: doc
+        type: LEFT
+
+  # === @ManyToOne связи ===
+  # MenuItemEntity -> UserEntity (поле "creator")
+  - jsonField: creatorEmail
+    entityPath: creator.email
+    fieldType: STRING
+    joinInfo:
+      - path: creator         # Имя поля в MenuItemEntity
+        alias: cr             # Уникальный alias
+        type: LEFT
+
+  # MenuItemEntity -> UserEntity (поле "lastModifier")
+  - jsonField: lastModifierEmail
+    entityPath: lastModifier.email
+    fieldType: STRING
+    joinInfo:
+      - path: lastModifier
+        alias: lm
+        type: LEFT
+
+  # MenuItemEntity -> MenuItemEntity (поле "parent")
+  - jsonField: parentTitle
+    entityPath: parent.title
+    fieldType: STRING
+    joinInfo:
+      - path: parent
+        alias: par
+        type: LEFT
+
+  # === @OneToMany связи (коллекции) ===
+  # MenuItemEntity -> DocumentEntity -> Set<DocumentAttachmentEntity>
+  # Путь: document.attachments - сначала join'им document, затем коллекцию attachments
+  #
+  # ВАЖНО: entityPath начинается с "attachments" (имя поля-коллекции),
+  # а НЕ с "document.attachments"!
+  - jsonField: attachmentFileName
+    entityPath: attachments.fileName       # Начинается с коллекции!
+    fieldType: STRING
+    joinInfo:
+      - path: document                     # Шаг 1: join @OneToOne поле
+        alias: doc_att1                    # Уникальный alias для этого атрибута
+        type: LEFT
+      - path: attachments                  # Шаг 2: join @OneToMany коллекцию
+        alias: att_att1                    # Уникальный alias для коллекции
+        type: LEFT
+
+  - jsonField: attachmentExtension
+    entityPath: attachments.extension
+    fieldType: STRING
+    joinInfo:
+      - path: document
+        alias: doc_att2                    # Разные alias для разных атрибутов!
+        type: LEFT
+      - path: attachments
+        alias: att_att2
+        type: LEFT
+
+  # === ПРИМЕЧАНИЯ ===
+  #
+  # 1. Формат конфигурации:
+  #    - jsonField: имя поля в JSON запросе от клиента
+  #    - entityPath: реальный путь к полю в JPA сущности
+  #    - path в joinInfo: имя поля связи в ТЕКУЩЕЙ сущности
+  #    - alias в joinInfo: уникальный идентификатор join'а
+  #
+  # 2. Для @ManyToOne/@OneToOne:
+  #    entityPath: creator.email
+  #    joinInfo: [{path: creator, alias: cr, type: LEFT}]
+  #
+  # 3. Для @OneToMany/@ManyToMany:
+  #    entityPath: attachments.fileName    # Начинается с поля-коллекции!
+  #    joinInfo:
+  #      - {path: document, alias: d, type: LEFT}
+  #      - {path: attachments, alias: a, type: LEFT}
+  #
+  # 4. Уникальность alias:
+  #    Каждый атрибут должен иметь уникальные alias'ы в joinInfo,
+  #    даже если joins ведут к тем же полям!
+  #
+  # 5. DISTINCT:
+  #    При поиске по коллекциям автоматически используется DISTINCT
+  #    для предотвращения дубликатов результатов.

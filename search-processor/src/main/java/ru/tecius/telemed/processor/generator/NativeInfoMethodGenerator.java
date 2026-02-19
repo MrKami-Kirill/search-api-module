@@ -8,10 +8,9 @@ import com.squareup.javapoet.TypeSpec;
 import java.util.Optional;
 import java.util.Set;
 import ru.tecius.telemed.configuration.JoinInfo;
-import ru.tecius.telemed.configuration.MultipleSearchAttribute;
-import ru.tecius.telemed.configuration.SimpleSearchAttribute;
+import ru.tecius.telemed.configuration.NativeSearchAttribute;
 
-public class MethodGenerator {
+public class NativeInfoMethodGenerator {
 
   public void addInterfaceMethods(TypeSpec.Builder classBuilder) {
     addGetSchemaNameMethod(classBuilder);
@@ -66,7 +65,7 @@ public class MethodGenerator {
     classBuilder.addMethod(MethodSpec.methodBuilder("getSimpleAttributes")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
-        .returns(ParameterizedTypeName.get(Set.class, SimpleSearchAttribute.class))
+        .returns(ParameterizedTypeName.get(Set.class, NativeSearchAttribute.class))
         .addStatement("return SIMPLE_ATTRIBUTES")
         .build());
   }
@@ -76,7 +75,7 @@ public class MethodGenerator {
         .addParameter(String.class, "jsonField")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
-        .returns(ParameterizedTypeName.get(Optional.class, SimpleSearchAttribute.class))
+        .returns(ParameterizedTypeName.get(Optional.class, NativeSearchAttribute.class))
         .addStatement("""
             return SIMPLE_ATTRIBUTES.stream()
                     .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
@@ -88,7 +87,7 @@ public class MethodGenerator {
     classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributes")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
-        .returns(ParameterizedTypeName.get(Set.class, MultipleSearchAttribute.class))
+        .returns(ParameterizedTypeName.get(Set.class, NativeSearchAttribute.class))
         .addStatement("return MULTIPLE_ATTRIBUTES")
         .build());
   }
@@ -98,7 +97,7 @@ public class MethodGenerator {
         .addParameter(String.class, "jsonField")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
-        .returns(ParameterizedTypeName.get(Optional.class, MultipleSearchAttribute.class))
+        .returns(ParameterizedTypeName.get(Optional.class, NativeSearchAttribute.class))
         .addStatement("""
             return MULTIPLE_ATTRIBUTES.stream()
                     .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))

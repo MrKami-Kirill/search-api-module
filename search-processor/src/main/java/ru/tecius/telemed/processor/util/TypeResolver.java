@@ -1,5 +1,9 @@
 package ru.tecius.telemed.processor.util;
 
+import static javax.lang.model.element.Modifier.FINAL;
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static javax.lang.model.element.Modifier.STATIC;
+
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -19,9 +23,7 @@ public class TypeResolver {
 
   public static FieldSpec createStaticStringField(String name, String value) {
     return FieldSpec.builder(String.class, name)
-        .addModifiers(javax.lang.model.element.Modifier.PRIVATE,
-            javax.lang.model.element.Modifier.STATIC,
-            javax.lang.model.element.Modifier.FINAL)
+        .addModifiers(PRIVATE, STATIC, FINAL)
         .initializer("$S", value)
         .build();
   }

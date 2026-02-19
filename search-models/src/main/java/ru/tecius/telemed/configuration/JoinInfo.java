@@ -5,15 +5,15 @@ import jakarta.validation.constraints.NotNull;
 import ru.tecius.telemed.enumeration.JoinTypeEnum;
 
 public record JoinInfo(
-    @NotNull(message = "Поле multipleAttributes.joinInfo.order не может быть null")
+    @NotNull(message = "Поле attributes.joinInfo.order не может быть null")
     Integer order,
-    @NotNull(message = "Поле multipleAttributes.joinInfo.reference не может быть null")
+    @NotNull(message = "Поле attributes.joinInfo.reference не может быть null")
     @Valid
     JoinReferenceData reference,
-    @NotNull(message = "Поле multipleAttributes.joinInfo.join не может быть null")
+    @NotNull(message = "Поле attributes.joinInfo.join не может быть null")
     @Valid
     JoinData join,
-    @NotNull(message = "Поле multipleAttributes.joinInfo.type не может быть null")
+    @NotNull(message = "Поле attributes.joinInfo.type не может быть null")
     JoinTypeEnum type
 ) {
 
