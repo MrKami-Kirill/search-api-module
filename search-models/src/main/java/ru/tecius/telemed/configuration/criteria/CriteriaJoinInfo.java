@@ -9,13 +9,13 @@ import jakarta.validation.constraints.NotNull;
  * Описывает путь к связанной сущности в JPA модели.
  */
 public record CriteriaJoinInfo(
-    @NotBlank(message = "Поле criteriaJoinInfo.path не может быть пустым")
+    @NotBlank(message = "Поле attribute.joinInfo.path не может быть пустым")
     String path,
 
-    @NotBlank(message = "Поле criteriaJoinInfo.alias не может быть пустым")
+    @NotBlank(message = "Поле attribute.joinInfo.alias не может быть пустым")
     String alias,
 
-    @NotNull(message = "Поле criteriaJoinInfo.type не может быть null")
+    @NotNull(message = "Поле attribute.joinInfo.type не может быть null")
     JoinType type
 ) {
 }

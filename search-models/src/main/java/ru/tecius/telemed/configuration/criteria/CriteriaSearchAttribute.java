@@ -1,5 +1,6 @@
 package ru.tecius.telemed.configuration.criteria;
 
+import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 
 import jakarta.validation.Valid;
@@ -14,15 +15,14 @@ import java.util.Objects;
  * Описывает поле сущности для построения динамических запросов через JPA Criteria API.
  */
 public record CriteriaSearchAttribute(
-    @NotBlank(message = "Поле criteriaAttribute.jsonField не может быть пустым")
+    @NotBlank(message = "Поле attribute.jsonField не может быть пустым")
     String jsonField,
 
-    @NotBlank(message = "Поле criteriaAttribute.entityPath не может быть пустым")
+    @NotBlank(message = "Поле attribute.entityPath не может быть пустым")
     String entityPath,
 
-    @NotNull(message = "Поле criteriaAttribute.fieldType не может быть null")
+    @NotNull(message = "Поле attribute.fieldType не может быть null")
     Class<?> fieldType,
-
     @Valid
     LinkedHashSet<CriteriaJoinInfo> joinInfo
 ) {
@@ -33,7 +33,7 @@ public record CriteriaSearchAttribute(
    */
   @AssertTrue(message = "entityPath должен начинаться с поля связи из joinInfo")
   public boolean isJoinInfoValid() {
-    if (joinInfo == null || joinInfo.isEmpty()) {
+    if (isEmpty(joinInfo)) {
       return true;
     }
 

@@ -11,7 +11,6 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.From;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Order;
@@ -54,24 +53,14 @@ public abstract class AbstractCriteriaSqlService<E> {
   protected static class JoinContext {
 
     private final Map<String, Join<?, ?>> joins = new LinkedHashMap<>();
-    private final Map<String, Fetch<?, ?>> fetches = new LinkedHashMap<>();
     private final Set<String> processedPaths = new LinkedHashSet<>();
 
     public Join<?, ?> getJoin(String path) {
       return joins.get(path);
     }
 
-    public Fetch<?, ?> getFetch(String path) {
-      return fetches.get(path);
-    }
-
     public void addJoin(String path, Join<?, ?> join) {
       joins.put(path, join);
-      processedPaths.add(path);
-    }
-
-    public void addFetch(String path, Fetch<?, ?> fetch) {
-      fetches.put(path, fetch);
       processedPaths.add(path);
     }
 
