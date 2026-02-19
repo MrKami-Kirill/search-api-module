@@ -18,10 +18,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import ru.tecius.telemed.configuration.FieldType;
+import ru.tecius.telemed.exception.ValidationException;
 
 @RequiredArgsConstructor
 @Getter
@@ -98,6 +100,8 @@ public enum Operator {
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
       Operator::transformValues);
 
+  private static final String INVALID_VALUE_FORMAT_ERROR_TEMPLATE = "Переданное значение %s не соответствует формату %s";
+
   private final BiFunction<String, List<String>, String> sqlTemplateFunction;
   private final Predicate<List<String>> valuePredicate;
   private final BiFunction<List<String>, FieldType, List<String>> transformValueFunction;
@@ -107,42 +111,40 @@ public enum Operator {
     return sqlTemplateFunction.apply(dbField, values);
   }
 
-  public static List<String> transformValues(List<String> values, FieldType fieldType
-      ) {
+  public static List<String> transformValues(List<String> values, FieldType fieldType) {
     return switch (fieldType) {
-      case LOCAL_DATE, LOCAL_DATE_TIME, OFFSET_DATE_TIME -> parseDateValues(values);
+      case LOCAL_DATE, LOCAL_DATE_TIME, OFFSET_DATE_TIME -> parseDateValues(values, fieldType);
       default -> values;
     };
   }
 
-  private static List<String> parseDateValues(List<String> values) {
+  private static List<String> parseDateValues(List<String> values, FieldType fieldType) {
     return values.stream()
-        .map(Operator::parseSingleDateValue)
+        .map(value -> parseSingleDateValue(value, fieldType))
         .toList();
   }
 
-  private static String parseSingleDateValue(String value) {
+  private static String parseSingleDateValue(String value, FieldType fieldType) {
+    return switch (fieldType) {
+      case OFFSET_DATE_TIME -> parseSingleDateValue(() -> OffsetDateTime.parse(value,
+          ofPattern(ISO_DATE_FORMAT)).toString(),
+          INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, ISO_DATE_FORMAT));
+      case LOCAL_DATE_TIME -> parseSingleDateValue(() -> LocalDateTime.parse(value,
+                  ofPattern(LOCAL_DATE_TIME_FORMAT)).format(ISO_LOCAL_DATE_TIME),
+          INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, LOCAL_DATE_TIME_FORMAT));
+      case LOCAL_DATE -> parseSingleDateValue(() -> LocalDate.parse(value, ofPattern(BIRTHDAY_DATE_FORMAT))
+              .format(ISO_LOCAL_DATE),
+          INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, BIRTHDAY_DATE_FORMAT));
+      default -> value;
+    };
+  }
+
+  private static String parseSingleDateValue(Supplier<String> supplier, String errorMessage) {
     try {
-      return OffsetDateTime.parse(value, ofPattern(ISO_DATE_FORMAT)).toString();
-    } catch (Exception ignored) {
-
+      return supplier.get();
+    } catch (Exception ex) {
+      throw new ValidationException(errorMessage, ex);
     }
-
-    try {
-      return LocalDateTime.parse(value, ofPattern(LOCAL_DATE_TIME_FORMAT))
-          .format(ISO_LOCAL_DATE_TIME);
-    } catch (Exception ignored) {
-
-    }
-
-    try {
-      return LocalDate.parse(value, ofPattern(BIRTHDAY_DATE_FORMAT))
-          .format(ISO_LOCAL_DATE);
-    } catch (Exception ignored) {
-
-    }
-
-    return value;
   }
 
 }

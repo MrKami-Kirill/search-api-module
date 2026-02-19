@@ -80,7 +80,7 @@ public class MenuItemService {
             {
               "attribute": "createDate",
               "value": [
-                "2026-02-12Т09:00:00+03:00"
+                "2026-02-12T09:00:00+03:00"
               ],
               "operator": "MORE_OR_EQUAL"
             }
