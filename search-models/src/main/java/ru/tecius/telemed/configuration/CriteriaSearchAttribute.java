@@ -1,7 +1,5 @@
 package ru.tecius.telemed.configuration;
 
-import static java.util.stream.Stream.ofNullable;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +19,7 @@ public record CriteriaSearchAttribute(
     String entityPath,
 
     @NotNull(message = "Поле criteriaAttribute.fieldType не может быть null")
-    FieldType fieldType,
+    Class<?> fieldType,
 
     @Valid
     LinkedHashSet<CriteriaJoinInfo> joinInfo
@@ -50,23 +48,6 @@ public record CriteriaSearchAttribute(
     var firstSegment = segments[0];
     return joinInfo.stream()
         .anyMatch(join -> Objects.equals(join.path(), firstSegment));
-  }
-
-  /**
-   * Возвращает полный путь к полю для Criteria API.
-   * Например: "document.attachment.fileName"
-   */
-  public String getFullPath() {
-    return entityPath;
-  }
-
-  /**
-   * Возвращает имя поля (последний сегмент пути).
-   * Например, для "document.attachment.fileName" вернет "fileName"
-   */
-  public String getFieldName() {
-    var lastDotIndex = entityPath.lastIndexOf('.');
-    return lastDotIndex == -1 ? entityPath : entityPath.substring(lastDotIndex + 1);
   }
 
   /**

@@ -10,7 +10,6 @@ import ru.tecius.telemed.configuration.CriteriaJoinInfo;
 import ru.tecius.telemed.configuration.CriteriaJoinType;
 import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
 import ru.tecius.telemed.configuration.CriteriaSearchAttributeConfig;
-import ru.tecius.telemed.configuration.FieldType;
 
 /**
  * Генератор блоков кода для CriteriaInfoInterface.
@@ -41,7 +40,7 @@ public class CriteriaInfoCodeBlockGenerator {
       builder.add("  new $T(\n", CriteriaSearchAttribute.class);
       builder.add("    $S,\n", attr.jsonField());
       builder.add("    $S,\n", attr.entityPath());
-      builder.add("    $T.$L,\n", FieldType.class, attr.fieldType());
+      builder.add("    $T.class,\n", attr.fieldType());
 
       if (attr.joinInfo() != null && !attr.joinInfo().isEmpty()) {
         builder.add("    new $T<$T>($T.asList(\n", LinkedHashSet.class, CriteriaJoinInfo.class, Arrays.class);

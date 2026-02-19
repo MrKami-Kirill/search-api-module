@@ -10,7 +10,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import ru.tecius.telemed.configuration.AttributeType;
-import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.configuration.JoinData;
 import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.configuration.JoinReferenceData;
@@ -30,13 +29,12 @@ public class NativeInfoCodeBlockGenerator {
 
     for (var i = 0; i < simpleAttributes.size(); i++) {
       var attr = simpleAttributes.get(i);
-      initializer.add("\tnew $T($T.$L, $S, $S, null, $T.$L, null)",
+      initializer.add("\tnew $T($T.$L, $S, $S, null, $T.class, null)",
           NativeSearchAttribute.class,
           AttributeType.class,
           attr.attributeType(),
           attr.jsonField(),
           attr.dbField(),
-          FieldType.class,
           attr.fieldType());
       if (i < simpleAttributes.size() - 1) {
         initializer.add(",\n");
@@ -59,14 +57,13 @@ public class NativeInfoCodeBlockGenerator {
       var attr = multipleAttributes.get(i);
       var joinsBlock = generateJoinInfoBlock(attr.joinInfo());
 
-      initializer.add("\tnew $T($T.$L, $S, $S, $S, $T.$L, $L)",
+      initializer.add("\tnew $T($T.$L, $S, $S, $S, $T.class, $L)",
           NativeSearchAttribute.class,
           AttributeType.class,
           attr.attributeType(),
           attr.jsonField(),
           attr.dbField(),
           attr.dbTableAlias(),
-          FieldType.class,
           attr.fieldType(),
           joinsBlock);
 

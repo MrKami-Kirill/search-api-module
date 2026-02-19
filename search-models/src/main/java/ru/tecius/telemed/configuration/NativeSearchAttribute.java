@@ -20,7 +20,7 @@ public record NativeSearchAttribute(
     String dbField,
     String dbTableAlias,
     @NotNull(message = "Поле attributes.fieldType не может быть null")
-    FieldType fieldType,
+    Class<?> fieldType,
     @Valid
     LinkedHashSet<JoinInfo> joinInfo) {
 

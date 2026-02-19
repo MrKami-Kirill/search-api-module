@@ -27,11 +27,11 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import ru.tecius.telemed.common.CriteriaInfoInterface;
 import ru.tecius.telemed.configuration.CriteriaJoinType;
 import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
-import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
@@ -40,23 +40,21 @@ import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.exception.ValidationException;
 
 /**
- * Абстрактный базовый класс для построения запросов через JPA Criteria API.
- * Предоставляет общую логику для создания динамических запросов с поддержкой:
- * - Динамических условий поиска
- * - Сортировки
- * - Пагинации
- * - Fetch joins для оптимизации загрузки связанных сущностей
- * - Поддержки коллекций через явные JOIN
+ * Абстрактный базовый класс для построения запросов через JPA Criteria API. Предоставляет общую
+ * логику для создания динамических запросов с поддержкой: - Динамических условий поиска -
+ * Сортировки - Пагинации - Fetch joins для оптимизации загрузки связанных сущностей - Поддержки
+ * коллекций через явные JOIN
  */
 public abstract class AbstractCriteriaSqlService<E> {
 
   protected final EntityManager entityManager;
-  protected final CriteriaInfoInterface<E> criteriaInfo;
+  protected final CriteriaInfoInterface<E> criteriaInfoInterface;
 
   /**
    * Контекст для хранения созданных joins и fetches в рамках выполнения запроса.
    */
   protected static class JoinContext {
+
     private final Map<String, Join<?, ?>> joins = new LinkedHashMap<>();
     private final Map<String, Fetch<?, ?>> fetches = new LinkedHashMap<>();
     private final Set<String> processedPaths = new LinkedHashSet<>();
@@ -87,30 +85,23 @@ public abstract class AbstractCriteriaSqlService<E> {
       return joins.containsKey(path);
     }
 
-    public boolean hasJoinInFetches(String path) {
-      return fetches.containsKey(path);
-    }
-
-    public Map<String, Join<?, ?>> getJoins() {
-      return joins;
-    }
   }
 
   protected AbstractCriteriaSqlService(
       EntityManager entityManager,
-      CriteriaInfoInterface<E> criteriaInfo
+      CriteriaInfoInterface<E> criteriaInfoInterface
   ) {
     this.entityManager = entityManager;
-    this.criteriaInfo = criteriaInfo;
+    this.criteriaInfoInterface = criteriaInfoInterface;
   }
 
   /**
    * Выполняет поиск с заданными параметрами.
    *
-   * @param searchData    условия поиска
-   * @param sort          сортировка
-   * @param pagination    пагинация
-   * @param fetchPaths    пути к полям для fetch join (например, ["document", "document.attachments"])
+   * @param searchData условия поиска
+   * @param sort       сортировка
+   * @param pagination пагинация
+   * @param fetchPaths пути к полям для fetch join (например, ["document", "document.attachments"])
    * @return результат поиска с пагинацией
    */
   protected SearchResponseDto<E> search(
@@ -139,7 +130,7 @@ public abstract class AbstractCriteriaSqlService<E> {
    */
   private Long executeCountQuery(CriteriaBuilder cb, List<SearchDataDto> searchData) {
     var criteriaQuery = cb.createQuery(Long.class);
-    var root = criteriaQuery.from(criteriaInfo.getEntityClass());
+    var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
 
     // Добавляем необходимые joins для фильтрации
@@ -166,8 +157,8 @@ public abstract class AbstractCriteriaSqlService<E> {
       PaginationDto pagination,
       List<String> fetchPaths
   ) {
-    var criteriaQuery = cb.createQuery(criteriaInfo.getEntityClass());
-    var root = criteriaQuery.from(criteriaInfo.getEntityClass());
+    var criteriaQuery = cb.createQuery(criteriaInfoInterface.getEntityClass());
+    var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
 
     // Добавляем fetch joins для оптимизации
@@ -208,9 +199,8 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   /**
-   * Добавляет fetch joins для оптимизации загрузки связанных сущностей.
-   * Fetch joins используются для загрузки связанных данных в одном запросе,
-   * избегая проблемы N+1.
+   * Добавляет fetch joins для оптимизации загрузки связанных сущностей. Fetch joins используются
+   * для загрузки связанных данных в одном запросе, избегая проблемы N+1.
    */
   private void addFetchJoins(Root<E> root, List<String> fetchPaths, JoinContext joinContext) {
     for (var fetchPath : fetchPaths) {
@@ -248,23 +238,26 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   /**
-   * Проверяет, есть ли среди joins joins к коллекциям (@OneToMany, @ManyToMany).
-   * Такие joins могут привести к дублированию результатов.
+   * Проверяет, есть ли среди joins joins к коллекциям (@OneToMany, @ManyToMany). Такие joins могут
+   * привести к дублированию результатов.
    */
   private boolean hasCollectionJoins(JoinContext joinContext) {
     // Для упрощения проверяем, есть ли joins по определенным путям
     // В реальном приложении можно использовать метаданные JPA для точной проверки
     return joinContext.joins.keySet().stream()
-        .anyMatch(path -> path.contains("attachments") || path.contains("comments") || path.contains("children"));
+        .anyMatch(
+            path -> path.contains("attachments") || path.contains("comments") || path.contains(
+                "children"));
   }
 
   /**
    * Добавляет joins, необходимые для условий поиска.
    */
-  private void addJoinsForSearch(Root<E> root, List<SearchDataDto> searchData, JoinContext joinContext) {
+  private void addJoinsForSearch(Root<E> root, List<SearchDataDto> searchData,
+      JoinContext joinContext) {
     if (isNotEmpty(searchData)) {
       searchData.forEach(data -> {
-        var attr = criteriaInfo.getCriteriaAttributeByJsonField(data.attribute())
+        var attr = criteriaInfoInterface.getCriteriaAttributeByJsonField(data.attribute())
             .orElse(null);
         if (attr != null && attr.requiresJoin()) {
           addJoinsFromAttribute(root, attr, joinContext);
@@ -279,7 +272,7 @@ public abstract class AbstractCriteriaSqlService<E> {
   private void addJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
     if (isNotEmpty(sort)) {
       for (var sortDto : sort) {
-        var attr = criteriaInfo.getCriteriaAttributeByJsonField(sortDto.attribute())
+        var attr = criteriaInfoInterface.getCriteriaAttributeByJsonField(sortDto.attribute())
             .orElse(null);
         if (attr != null && attr.requiresJoin()) {
           addJoinsFromAttribute(root, attr, joinContext);
@@ -289,10 +282,11 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   /**
-   * Добавляет joins, описанные в атрибуте, и сохраняет их в контексте.
-   * Поддерживает цепочку joins для навигации по коллекциям.
+   * Добавляет joins, описанные в атрибуте, и сохраняет их в контексте. Поддерживает цепочку joins
+   * для навигации по коллекциям.
    */
-  private void addJoinsFromAttribute(Root<E> root, CriteriaSearchAttribute attr, JoinContext joinContext) {
+  private void addJoinsFromAttribute(Root<E> root, CriteriaSearchAttribute attr,
+      JoinContext joinContext) {
     if (!attr.requiresJoin()) {
       return;
     }
@@ -360,7 +354,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       SearchDataDto searchData,
       JoinContext joinContext
   ) {
-    var attribute = criteriaInfo.getCriteriaAttributeByJsonField(searchData.attribute())
+    var attribute = criteriaInfoInterface.getCriteriaAttributeByJsonField(searchData.attribute())
         .orElseThrow(() -> new ValidationException(
             "Фильтрация по атрибуту %s запрещена".formatted(searchData.attribute())));
 
@@ -372,38 +366,37 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   /**
-   * Строит путь к полю для Criteria API на основе атрибута и созданных joins.
-   * Использует информацию о joins из конфигурации атрибута.
+   * Строит путь к полю для Criteria API на основе атрибута и созданных joins. Использует информацию
+   * о joins из конфигурации атрибута.
    */
   @SuppressWarnings("unchecked")
-  private Path<?> buildPathFromAttribute(Root<E> root, CriteriaSearchAttribute attribute, JoinContext joinContext) {
-    var fullPath = attribute.getFullPath();
-    var segments = fullPath.split("\\.");
+  private Path<?> buildPathFromAttribute(Root<E> root, CriteriaSearchAttribute attribute,
+      JoinContext joinContext) {
+    var entityPath = attribute.entityPath();
+    var segments = entityPath.split("\\.");
 
-    if (segments.length == 1) {
+    if (Objects.equals(segments.length, 1)) {
       // Простой путь без joins
       return root.get(segments[0]);
     }
 
     // Если атрибут имеет joinInfo, используем последний join для получения поля
-    if (attribute.requiresJoin()) {
-      var joinsList = new ArrayList<>(attribute.joinInfo());
-      if (!joinsList.isEmpty()) {
-        // Берем последний join (он соответствует самой глубокой вложенности)
-        var lastJoinInfo = joinsList.getLast();
+    var joinsList = new ArrayList<>(attribute.joinInfo());
+    if (!joinsList.isEmpty()) {
+      // Берем последний join (он соответствует самой глубокой вложенности)
+      var lastJoinInfo = joinsList.getLast();
 
-        // Строим путь к последнему join
-        var currentPath = "";
-        for (var joinInfo : joinsList) {
-          currentPath = currentPath.isEmpty() ? joinInfo.path() : currentPath + "." + joinInfo.path();
-        }
+      // Строим путь к последнему join
+      var currentPath = "";
+      for (var joinInfo : joinsList) {
+        currentPath = currentPath.isEmpty() ? joinInfo.path() : currentPath + "." + joinInfo.path();
+      }
 
-        // Если такой join был создан, используем его
-        if (joinContext.hasJoinInJoins(currentPath)) {
-          var join = joinContext.getJoin(currentPath);
-          // Получаем поле из join'а
-          return join.get(segments[segments.length - 1]);
-        }
+      // Если такой join был создан, используем его
+      if (joinContext.hasJoinInJoins(currentPath)) {
+        var join = joinContext.getJoin(currentPath);
+        // Получаем поле из join'а
+        return join.get(segments[segments.length - 1]);
       }
     }
 
@@ -424,13 +417,16 @@ public abstract class AbstractCriteriaSqlService<E> {
       Path<?> path,
       Operator operator,
       List<String> values,
-      FieldType fieldType
+      Class<?> fieldType
   ) {
-    var transformedValues = operator.getTransformValueFunction().apply(values, fieldType);
+    var transformedValues = values;
+    //operator.getNativeTransformValueFunction().apply(values, fieldType);
 
     return switch (operator) {
-      case EQUAL -> cb.equal(path, convertValueForCriteria(transformedValues.getFirst(), fieldType));
-      case NOT_EQUAL -> cb.notEqual(path, convertValueForCriteria(transformedValues.getFirst(), fieldType));
+      case EQUAL ->
+          cb.equal(path, convertValueForCriteria(transformedValues.getFirst(), fieldType));
+      case NOT_EQUAL ->
+          cb.notEqual(path, convertValueForCriteria(transformedValues.getFirst(), fieldType));
       case IN -> path.in(convertedValuesForCriteria(transformedValues, fieldType));
       case CONTAIN -> cb.like(path.as(String.class), transformedValues.getFirst().toString());
       case EXCLUDE -> cb.notLike(path.as(String.class), transformedValues.getFirst().toString());
@@ -441,17 +437,20 @@ public abstract class AbstractCriteriaSqlService<E> {
       case IS_NULL -> cb.isNull(path);
       case IS_NOT_NULL -> cb.isNotNull(path);
       case BETWEEN -> {
-        if (fieldType == FieldType.STRING) {
-          yield cb.between(path.as(String.class), transformedValues.get(0), transformedValues.get(1));
+        if (Objects.equals(fieldType, String.class)) {
+          yield cb.between(path.as(String.class), transformedValues.get(0),
+              transformedValues.get(1));
         }
         // Для дат парсим в объекты даты
-        if (fieldType == FieldType.OFFSET_DATE_TIME || fieldType == FieldType.LOCAL_DATE_TIME || fieldType == FieldType.LOCAL_DATE) {
+        if (List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
+            .contains(fieldType)) {
           yield cb.between(
               (Path) path,
               parseDateValue(transformedValues.get(0), fieldType),
               parseDateValue(transformedValues.get(1), fieldType)
           );
         }
+
         // Для чисел используем преобразованные значения
         yield cb.between(
             (Path) path,
@@ -460,11 +459,12 @@ public abstract class AbstractCriteriaSqlService<E> {
         );
       }
       case MORE_OR_EQUAL -> {
-        if (fieldType == FieldType.STRING) {
+        if (Objects.equals(fieldType, String.class)) {
           yield cb.greaterThanOrEqualTo(path.as(String.class), transformedValues.getFirst());
         }
         // Для дат парсим в объекты даты
-        if (fieldType == FieldType.OFFSET_DATE_TIME || fieldType == FieldType.LOCAL_DATE_TIME || fieldType == FieldType.LOCAL_DATE) {
+        if (List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
+            .contains(fieldType)) {
           yield cb.greaterThanOrEqualTo(
               (Path) path,
               parseDateValue(transformedValues.getFirst(), fieldType)
@@ -477,11 +477,12 @@ public abstract class AbstractCriteriaSqlService<E> {
         );
       }
       case LESS_OR_EQUAL -> {
-        if (fieldType == FieldType.STRING) {
+        if (Objects.equals(fieldType, String.class)) {
           yield cb.lessThanOrEqualTo(path.as(String.class), transformedValues.getFirst());
         }
         // Для дат парсим в объекты даты
-        if (fieldType == FieldType.OFFSET_DATE_TIME || fieldType == FieldType.LOCAL_DATE_TIME || fieldType == FieldType.LOCAL_DATE) {
+        if (List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
+            .contains(fieldType)) {
           yield cb.lessThanOrEqualTo(
               (Path) path,
               parseDateValue(transformedValues.getFirst(), fieldType)
@@ -499,29 +500,24 @@ public abstract class AbstractCriteriaSqlService<E> {
   /**
    * Преобразует строковое значение в соответствующий тип для Criteria API.
    */
-  private Object convertValueForCriteria(String value, FieldType fieldType) {
+  private Object convertValueForCriteria(String value, Class<?> fieldType) {
     if (value == null) {
       return null;
     }
 
     return switch (fieldType) {
-      case NUMERIC -> {
-        try {
-          yield Long.parseLong(value);
-        } catch (NumberFormatException e) {
-          yield Double.parseDouble(value);
-        }
-      }
-      case BOOLEAN -> Boolean.parseBoolean(value);
-      case STRING -> value;
-      case OFFSET_DATE_TIME, LOCAL_DATE_TIME, LOCAL_DATE -> value; // Даты преобразуются в transformValues
+      case Class<?> c when c == Long.class -> Long.parseLong(value);
+      case Class<?> c when c == Integer.class -> Integer.parseInt(value);
+      case Class<?> c when c == Double.class -> Double.parseDouble(value);
+      case Class<?> c when c == Boolean.class -> Boolean.parseBoolean(value);
+      default -> value;
     };
   }
 
   /**
    * Преобразует список строковых значений в соответствующие типы для Criteria API.
    */
-  private Object[] convertedValuesForCriteria(List<String> values, FieldType fieldType) {
+  private Object[] convertedValuesForCriteria(List<String> values, Class<?> fieldType) {
     return values.stream()
         .map(v -> convertValueForCriteria(v, fieldType))
         .toArray();
@@ -531,28 +527,30 @@ public abstract class AbstractCriteriaSqlService<E> {
    * Парсит строковое значение даты в объект даты для Criteria API.
    */
   @SuppressWarnings("unchecked,rawtypes")
-  private Comparable parseDateValue(String value, FieldType fieldType) {
+  private Comparable parseDateValue(String value, Class<?> fieldType) {
     try {
       return switch (fieldType) {
-        case OFFSET_DATE_TIME -> {
+        case Class<?> c when c == OffsetDateTime.class -> {
           // Пытаемся распарсить дату с timezone
           try {
             // Сначала пробуем стандартный формат ISO 8601
-            yield (Comparable) OffsetDateTime.parse(value);
+            yield OffsetDateTime.parse(value);
           } catch (Exception e) {
             // Если не получилось, пробуем формат с двоеточием в timezone
             var formatter = ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
             // Заменяем двоеточие в timezone для парсинга
             var normalized = value.replaceAll("([+-]\\d{2}):(\\d{2})$", "$1$2");
-            yield (Comparable) OffsetDateTime.parse(normalized, formatter);
+            yield OffsetDateTime.parse(normalized, formatter);
           }
         }
-        case LOCAL_DATE_TIME -> (Comparable) LocalDateTime.parse(value, ISO_LOCAL_DATE_TIME);
-        case LOCAL_DATE -> (Comparable) LocalDate.parse(value, ISO_LOCAL_DATE);
+        case Class<?> c when c == LocalDateTime.class -> LocalDateTime.parse(value,
+            ISO_LOCAL_DATE_TIME);
+        case Class<?> c when c == LocalDate.class -> LocalDate.parse(value, ISO_LOCAL_DATE);
         default -> throw new IllegalArgumentException("Unsupported date type: " + fieldType);
       };
     } catch (Exception e) {
-      throw new ValidationException("Ошибка парсинга даты: %s для типа %s".formatted(value, fieldType), e);
+      throw new ValidationException(
+          "Ошибка парсинга даты: %s для типа %s".formatted(value, fieldType), e);
     }
   }
 
@@ -568,7 +566,7 @@ public abstract class AbstractCriteriaSqlService<E> {
     var orders = new ArrayList<Order>();
 
     for (var sortDto : sort) {
-      var attribute = criteriaInfo.getCriteriaAttributeByJsonField(sortDto.attribute())
+      var attribute = criteriaInfoInterface.getCriteriaAttributeByJsonField(sortDto.attribute())
           .orElseThrow(() -> new ValidationException(
               "Сортировка по атрибуту %s запрещена".formatted(sortDto.attribute())));
 
@@ -602,13 +600,13 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   private int calculateTotalPages(Long totalElements, int pageSize) {
-    return totalElements != null
+    return nonNull(totalElements)
         ? (int) Math.ceil((double) totalElements / pageSize)
         : 0;
   }
 
   private boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
-    return pagination != null && pagination.page() != null
+    return nonNull(pagination) && nonNull(pagination.page())
         && (pagination.page() + 1) < totalPages;
   }
 }

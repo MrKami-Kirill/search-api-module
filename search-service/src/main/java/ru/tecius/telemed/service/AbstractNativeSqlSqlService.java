@@ -15,7 +15,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import ru.tecius.telemed.common.SearchInfoInterface;
-import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
@@ -170,9 +169,9 @@ public abstract class AbstractNativeSqlSqlService<E> {
   }
 
   private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
-      List<Object> params, FieldType fieldType) {
-    var condition = operator.buildCondition(dbField, values);
-    params.addAll(operator.getTransformValueFunction().apply(values, fieldType));
+      List<Object> params, Class<?> fieldType) {
+    var condition = operator.buildNativeCondition(dbField, values);
+    params.addAll(operator.getNativeTransformValueFunction().apply(values, fieldType));
     return condition;
   }
 

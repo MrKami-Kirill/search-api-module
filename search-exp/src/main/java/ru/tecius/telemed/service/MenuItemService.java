@@ -98,6 +98,13 @@ public class MenuItemService {
               "operator": "NOT_BEGIN"
             },
             {
+              "attribute": "attachmentExtension",
+              "value": [
+                "img"
+              ],
+              "operator": "NOT_EQUAL"
+            },
+            {
               "attribute": "createDate",
               "value": [
                 "2026-02-12T09:00:00+03:00"

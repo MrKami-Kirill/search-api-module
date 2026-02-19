@@ -2,40 +2,40 @@ attributes:
   - attributeType: SIMPLE
     jsonField: id
     dbField: id
-    fieldType: NUMERIC
+    fieldType: java.lang.Long
   - attributeType: SIMPLE
     jsonField: title
     dbField: title
-    fieldType: STRING
+    fieldType: java.lang.String
   - attributeType: SIMPLE
     jsonField: path
     dbField: path
-    fieldType: STRING
+    fieldType: java.lang.String
   - attributeType: SIMPLE
     jsonField: isActive
     dbField: is_active
-    fieldType: BOOLEAN
+    fieldType: java.lang.Boolean
   - attributeType: SIMPLE
     jsonField: inheritParentPermissions
     dbField: inherit_parent_permissions
-    fieldType: BOOLEAN
+    fieldType: java.lang.Boolean
   - attributeType: SIMPLE
     jsonField: availableEveryone
     dbField: available_everyone
-    fieldType: BOOLEAN
+    fieldType: java.lang.Boolean
   - attributeType: SIMPLE
     jsonField: createDate
     dbField: create_date
-    fieldType: OFFSET_DATE_TIME
+    fieldType: java.time.OffsetDateTime
   - attributeType: SIMPLE
     jsonField: lastUpdateDate
     dbField: last_update_date
-    fieldType: OFFSET_DATE_TIME
+    fieldType: java.time.OffsetDateTime
   - attributeType: MULTIPLE
     jsonField: attachmentFileName
     dbField: file_name
     dbTableAlias: da
-    fieldType: STRING
+    fieldType: java.lang.String
     joinInfo:
       - order: 1
         reference:
@@ -61,7 +61,7 @@ attributes:
     jsonField: attachmentExtension
     dbField: extension
     dbTableAlias: da
-    fieldType: STRING
+    fieldType: java.lang.String
     joinInfo:
       - order: 1
         reference:
@@ -87,7 +87,7 @@ attributes:
     jsonField: documentId
     dbField: id
     dbTableAlias: d
-    fieldType: NUMERIC
+    fieldType: java.lang.Long
     joinInfo:
       - order: 1
         reference:

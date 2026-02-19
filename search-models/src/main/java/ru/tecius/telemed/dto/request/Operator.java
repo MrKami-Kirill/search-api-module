@@ -14,15 +14,16 @@ import static util.Constants.LOCAL_DATE_TIME_FORMAT;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
-import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.exception.ValidationException;
 
 @RequiredArgsConstructor
@@ -100,40 +101,54 @@ public enum Operator {
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
       Operator::transformValues);
 
-  private static final String INVALID_VALUE_FORMAT_ERROR_TEMPLATE = "Переданное значение %s не соответствует формату %s";
+  private static final String INVALID_VALUE_FORMAT_ERROR_TEMPLATE =
+      "Переданное значение %s не соответствует формату %s";
+  private static final DateTimeFormatter ISO_DATE_TIME_FORMATTER = ofPattern(ISO_DATE_FORMAT);
+  private static final DateTimeFormatter LOCAL_DATE_TIME_FORMATTER =
+      ofPattern(LOCAL_DATE_TIME_FORMAT);
+  private static final DateTimeFormatter BIRTHDAY_DATE_FORMATTER = ofPattern(BIRTHDAY_DATE_FORMAT);
 
   private final BiFunction<String, List<String>, String> sqlTemplateFunction;
   private final Predicate<List<String>> valuePredicate;
-  private final BiFunction<List<String>, FieldType, List<String>> transformValueFunction;
+  private final BiFunction<List<String>, Class<?>, List<String>> nativeTransformValueFunction;
+//  private final BiFunction<List<String>, Pair<FieldType, CriteriaBuilder>, Object>
+//      criteriaTransformFunction;
 
-  public String buildCondition(String dbField, List<String> values) {
+  public String buildNativeCondition(String dbField, List<String> values) {
     valuePredicate.test(values);
     return sqlTemplateFunction.apply(dbField, values);
   }
 
-  public static List<String> transformValues(List<String> values, FieldType fieldType) {
-    return switch (fieldType) {
-      case LOCAL_DATE, LOCAL_DATE_TIME, OFFSET_DATE_TIME -> parseDateValues(values, fieldType);
-      default -> values;
-    };
+  public Object buildCriteriaCondition(List<String> values) {
+    valuePredicate.test(values);
+    return null;
   }
 
-  private static List<String> parseDateValues(List<String> values, FieldType fieldType) {
+  public static List<String> transformValues(List<String> values, Class<?> fieldType) {
+    return Stream.of(fieldType)
+        .filter(cls -> List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
+            .contains(cls))
+        .map(cls -> parseDateValues(values, cls))
+        .findAny()
+        .orElse(values);
+  }
+
+  private static List<String> parseDateValues(List<String> values, Class<?> fieldType) {
     return values.stream()
         .map(value -> parseSingleDateValue(value, fieldType))
         .toList();
   }
 
-  private static String parseSingleDateValue(String value, FieldType fieldType) {
+  private static String parseSingleDateValue(String value, Class<?> fieldType) {
     return switch (fieldType) {
-      case OFFSET_DATE_TIME -> parseSingleDateValue(() -> OffsetDateTime.parse(value,
-          ofPattern(ISO_DATE_FORMAT)).toString(),
+      case Class<?> c when c == OffsetDateTime.class -> parseSingleDateValue(() ->
+              OffsetDateTime.parse(value, ISO_DATE_TIME_FORMATTER).toString(),
           INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, ISO_DATE_FORMAT));
-      case LOCAL_DATE_TIME -> parseSingleDateValue(() -> LocalDateTime.parse(value,
-                  ofPattern(LOCAL_DATE_TIME_FORMAT)).format(ISO_LOCAL_DATE_TIME),
+      case Class<?> c when c == LocalDateTime.class -> parseSingleDateValue(() ->
+              LocalDateTime.parse(value, LOCAL_DATE_TIME_FORMATTER).format(ISO_LOCAL_DATE_TIME),
           INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, LOCAL_DATE_TIME_FORMAT));
-      case LOCAL_DATE -> parseSingleDateValue(() -> LocalDate.parse(value, ofPattern(BIRTHDAY_DATE_FORMAT))
-              .format(ISO_LOCAL_DATE),
+      case Class<?> c when c == LocalDate.class -> parseSingleDateValue(() ->
+              LocalDate.parse(value, BIRTHDAY_DATE_FORMATTER).format(ISO_LOCAL_DATE),
           INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, BIRTHDAY_DATE_FORMAT));
       default -> value;
     };
