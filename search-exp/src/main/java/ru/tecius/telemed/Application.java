@@ -2,6 +2,7 @@ package ru.tecius.telemed;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import ru.tecius.telemed.service.MenuItemService;
 
 /**
  * Главный класс приложения.
@@ -16,12 +17,10 @@ public class Application {
    * @param args аргументы командной строки
    */
   public static void main(String[] args) {
-    SpringApplication.run(Application.class, args);
-    // TODO: fix AbstractSqlService instantiation - it's abstract
-    // var context = SpringApplication.run(Application.class, args);
-    // var entityManager = context.getBean(EntityManager.class);
-    // var sqlService = new AbstractSqlService<>(entityManager);
-    // sqlService.search(null);
+    var context = SpringApplication.run(Application.class, args);
+    var menuItemService = context.getBean(MenuItemService.class);
+    var result = menuItemService.search();
+    System.out.println(result);
   }
 
 }

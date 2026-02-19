@@ -1,6 +1,9 @@
 package ru.tecius.telemed.service;
 
+import static java.lang.String.join;
+import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
+import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,7 +24,7 @@ import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 
-public abstract class NativeSqlService<E> {
+public class NativeSqlService<E> {
 
   private final JdbcTemplate jdbcTemplate;
   private final RowMapper<E> rowMapper;
@@ -37,65 +40,59 @@ public abstract class NativeSqlService<E> {
 
   protected SearchResponseDto<E> search(List<SearchDataDto> searchData, SortDto sort,
       PaginationDto pagination) {
-
     var sqlBuilder = new StringBuilder();
-    List<Object> params = new LinkedList<>();
+    var params = new LinkedList<>();
 
-    // SELECT clause
-    sqlBuilder.append("SELECT ");
+    sqlBuilder.append("SELECT ")
+        .append(searchInfoInterface.getFullTableName());
+    var uniqueJoins = collectUniqueJoins(searchData, sort);
 
-    // FROM clause with joins
-    sqlBuilder.append(searchInfoInterface.getFullTableName());
-
-    // Get unique joins for all attributes
-    Set<JoinInfo> uniqueJoins = collectUniqueJoins(searchData, sort);
-
-    // Add JOINs
     if (!uniqueJoins.isEmpty()) {
-      String joinsSql = uniqueJoins.stream()
+      var joinsSql = uniqueJoins.stream()
           .sorted(Comparator.comparingInt(JoinInfo::order))
           .map(JoinInfo::createJoinString)
-          .collect(joining(" "));
+          .collect(joining("\n"));
       sqlBuilder.append(" ").append(joinsSql);
     }
 
     // WHERE clause
-    List<String> whereConditions = new ArrayList<>();
-    if (searchData != null && !searchData.isEmpty()) {
-      for (SearchDataDto data : searchData) {
-        String attribute = data.attribute();
-        Operator operator = data.operator();
-        List<String> values = data.value();
+    var whereConditions = new ArrayList<String>();
+    if (isNotEmpty(searchData)) {
+      searchData.forEach(data -> {
+        var attribute = data.attribute();
+        var operator = data.operator();
+        var values = data.value();
 
-        String condition = buildCondition(attribute, operator, values, params);
-        if (condition != null) {
+        var condition = buildCondition(attribute, operator, values, params);
+        if (nonNull(condition)) {
           whereConditions.add(condition);
         }
-      }
+      });
     }
 
-    if (!whereConditions.isEmpty()) {
-      sqlBuilder.append(" WHERE ").append(String.join("\nAND", whereConditions));
+    if (isNotEmpty(whereConditions)) {
+      sqlBuilder.append(" WHERE ")
+          .append(join("\nAND", whereConditions));
     }
 
     // Get total count
-    String countSql = "SELECT COUNT(*) " + extractFromAndJoins(sqlBuilder.toString());
-    Integer totalElements = jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
+    var countSql = "SELECT COUNT(*) " + extractFromAndJoins(sqlBuilder.toString());
+    var totalElements = jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
     // ORDER BY clause
-    if (sort != null && sort.attribute() != null) {
-      String orderByClause = buildOrderByClause(sort);
-      if (orderByClause != null) {
+    if (nonNull(sort) && nonNull(sort.attribute())) {
+      var orderByClause = buildOrderByClause(sort);
+      if (nonNull(orderByClause)) {
         sqlBuilder.append(" ").append(orderByClause);
       }
     }
 
     // Pagination
-    if (pagination != null) {
-      int offset = pagination.page() != null ? pagination.page() * pagination.size() : 0;
-      int limit = pagination.size() != null ? pagination.size() : 10;
+    if (nonNull(pagination)) {
+      int offset = nonNull(pagination.page()) ? pagination.page() * pagination.size() : 0;
+      int limit = nonNull(pagination.page()) ? pagination.size() : 10;
       sqlBuilder.append(" LIMIT ? OFFSET ?");
-      params.add(limit);
+      params.add(String.valueOf(limit));
       params.add(offset);
     }
 
@@ -137,13 +134,15 @@ public abstract class NativeSqlService<E> {
       List<Object> params) {
 
     // Check simple attributes
-    Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
+    Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(
+        attribute);
     if (simpleAttr.isPresent()) {
       return buildSimpleCondition(simpleAttr.get().dbField(), operator, values, params);
     }
 
     // Check multiple attributes
-    Optional<MultipleSearchAttribute> multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
+    Optional<MultipleSearchAttribute> multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(
+        attribute);
     return multipleAttr.map(multipleSearchAttribute -> buildSimpleCondition(
         multipleSearchAttribute.getFullDbFieldName(), operator, values, params)).orElse(null);
 
@@ -152,63 +151,30 @@ public abstract class NativeSqlService<E> {
   private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
       List<Object> params) {
 
-    String sqlOperator = operator.getSqlOperator();
-    String placeholderType = operator.getJpaValuePlaceholderType();
+    // Build SQL condition template
+    var condition = operator.buildCondition(dbField, values);
 
-    // Handle operators that don't need values
-    if (sqlOperator.equals("IS NULL")) {
-      return dbField + " IS NULL";
-    }
-    if (sqlOperator.equals("IS NOT NULL")) {
-      return dbField + " IS NOT NULL";
-    }
+    // Transform values and add to params
+    var transformedValues = operator.transformValues(values);
+    params.addAll(transformedValues);
 
-    // Handle operators that need values
-    if (values == null || values.isEmpty()) {
-      return null;
-    }
-
-    String value = values.get(0);
-
-    // Handle IN operator
-    if (sqlOperator.equals("IN")) {
-      Object transformedValue = operator.getJpaValuePalceholderFunction().apply(value);
-      if (transformedValue instanceof List<?> list) {
-        String placeholders = list.stream()
-            .map(v -> "?")
-            .collect(joining(", "));
-        params.addAll(list);
-        return dbField + " IN (" + placeholders + ")";
-      }
-    }
-
-    // Handle BETWEEN operator
-    if (sqlOperator.equals("BETWEEN") && values.size() >= 2) {
-      Object value1 = operator.getJpaValuePalceholderFunction().apply(values.get(0));
-      Object value2 = operator.getJpaValuePalceholderFunction().apply(values.get(1));
-      params.add(value1);
-      params.add(value2);
-      return dbField + " BETWEEN ? AND ?";
-    }
-
-    // Handle standard operators
-    Object transformedValue = operator.getJpaValuePalceholderFunction().apply(value);
-    params.add(transformedValue);
-
-    return String.format("%s %s %s", dbField, sqlOperator, "?");
+    return condition;
   }
 
   private String buildOrderByClause(SortDto sort) {
     String attribute = sort.attribute();
 
     // Check simple attributes
-    Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
+    Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(
+        attribute);
     if (simpleAttr.isPresent()) {
-      return "ORDER BY " + searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField() + " " + sort.direction();
+      return "ORDER BY " + searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField()
+          + " " + sort.direction();
     }
 
     // Check multiple attributes
-    Optional<MultipleSearchAttribute> multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
+    Optional<MultipleSearchAttribute> multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(
+        attribute);
     return multipleAttr.map(
         multipleSearchAttribute -> "ORDER BY " + multipleSearchAttribute.getFullDbFieldName() + " "
             + sort.direction()).orElse(null);
