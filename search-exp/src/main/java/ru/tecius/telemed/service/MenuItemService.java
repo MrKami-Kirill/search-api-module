@@ -16,6 +16,9 @@ import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.entity.MenuItemEntity;
 import ru.tecius.telemed.entity.MenuItemEntityCriteriaInfo;
 import ru.tecius.telemed.entity.MenuItemEntitySearchInfo;
+import ru.tecius.telemed.service.criteria.CriteriaEntityService;
+import ru.tecius.telemed.service.nativ.JdbcNativeSqlService;
+import ru.tecius.telemed.service.nativ.NativeEntitySqlService;
 
 @Service
 public class MenuItemService {

@@ -1,4 +1,4 @@
-package ru.tecius.telemed.processor.generator;
+package ru.tecius.telemed.processor.generator.nativ;
 
 import static javax.lang.model.element.Modifier.PUBLIC;
 
@@ -7,8 +7,8 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import java.util.Optional;
 import java.util.Set;
-import ru.tecius.telemed.configuration.JoinInfo;
-import ru.tecius.telemed.configuration.NativeSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.JoinInfo;
+import ru.tecius.telemed.configuration.nativ.NativeSearchAttribute;
 
 public class NativeInfoMethodGenerator {
 

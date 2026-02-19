@@ -1,10 +1,11 @@
-package ru.tecius.telemed.service;
+package ru.tecius.telemed.service.criteria;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -29,9 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import ru.tecius.telemed.common.CriteriaInfoInterface;
-import ru.tecius.telemed.configuration.CriteriaJoinType;
-import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
+import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
+import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
@@ -296,11 +296,11 @@ public abstract class AbstractCriteriaSqlService<E> {
 
     for (var joinInfo : attr.joinInfo()) {
       var joinPath = joinInfo.path();
-      currentPath = currentPath.isEmpty() ? joinPath : currentPath + "." + joinPath;
+      currentPath = isBlank(currentPath) ? joinPath : currentPath + "." + joinPath;
 
       // Проверяем, не добавляли ли мы уже такой join
       if (!joinContext.hasJoin(currentPath)) {
-        var joinType = mapJoinType(joinInfo.type());
+        var joinType = joinInfo.type();
         var join = currentFrom.join(joinPath, joinType);
         joinContext.addJoin(currentPath, join);
         currentFrom = join;
@@ -309,17 +309,6 @@ public abstract class AbstractCriteriaSqlService<E> {
         currentFrom = joinContext.getJoin(currentPath);
       }
     }
-  }
-
-  /**
-   * Преобразует CriteriaJoinType в JPA JoinType.
-   */
-  private JoinType mapJoinType(CriteriaJoinType type) {
-    return switch (type) {
-      case INNER -> JoinType.INNER;
-      case LEFT -> JoinType.LEFT;
-      case RIGHT -> JoinType.RIGHT;
-    };
   }
 
   /**

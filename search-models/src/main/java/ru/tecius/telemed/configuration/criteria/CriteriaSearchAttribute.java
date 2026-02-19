@@ -1,4 +1,4 @@
-package ru.tecius.telemed.configuration;
+package ru.tecius.telemed.configuration.criteria;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;

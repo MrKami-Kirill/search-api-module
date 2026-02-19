@@ -1,6 +1,6 @@
-package ru.tecius.telemed.configuration;
+package ru.tecius.telemed.configuration.criteria;
 
-import jakarta.validation.Valid;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -16,6 +16,6 @@ public record CriteriaJoinInfo(
     String alias,
 
     @NotNull(message = "Поле criteriaJoinInfo.type не может быть null")
-    CriteriaJoinType type
+    JoinType type
 ) {
 }

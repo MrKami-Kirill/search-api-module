@@ -1,15 +1,15 @@
-package ru.tecius.telemed.processor.generator;
+package ru.tecius.telemed.processor.generator.criteria;
 
 import com.squareup.javapoet.CodeBlock;
+import jakarta.persistence.criteria.JoinType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import ru.tecius.telemed.configuration.CriteriaJoinInfo;
-import ru.tecius.telemed.configuration.CriteriaJoinType;
-import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
-import ru.tecius.telemed.configuration.CriteriaSearchAttributeConfig;
+import ru.tecius.telemed.configuration.criteria.CriteriaJoinInfo;
+import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.CriteriaSearchAttributeConfig;
 
 /**
  * Генератор блоков кода для CriteriaInfoInterface.
@@ -50,7 +50,7 @@ public class CriteriaInfoCodeBlockGenerator {
           builder.add("      new $T(\n", CriteriaJoinInfo.class);
           builder.add("        $S,\n", join.path());
           builder.add("        $S,\n", join.alias());
-          builder.add("        $T.$L\n", CriteriaJoinType.class, join.type());
+          builder.add("        $T.$L\n", JoinType.class, join.type());
           builder.add(j < joins.size() - 1 ? "      ),\n" : "      )\n");
         }
         builder.add("    ))\n");
@@ -91,7 +91,7 @@ public class CriteriaInfoCodeBlockGenerator {
       builder.add("  new $T(\n", CriteriaJoinInfo.class);
       builder.add("    $S,\n", join.path());
       builder.add("    $S,\n", join.alias());
-      builder.add("    $T.$L\n", CriteriaJoinType.class, join.type());
+      builder.add("    $T.$L\n", JoinType.class, join.type());
       builder.add(i < joinsList.size() - 1 ? "  ),\n" : "  )\n");
     }
 

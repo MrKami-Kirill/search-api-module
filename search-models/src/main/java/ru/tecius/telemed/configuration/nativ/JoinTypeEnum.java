@@ -1,4 +1,4 @@
-package ru.tecius.telemed.enumeration;
+package ru.tecius.telemed.configuration.nativ;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

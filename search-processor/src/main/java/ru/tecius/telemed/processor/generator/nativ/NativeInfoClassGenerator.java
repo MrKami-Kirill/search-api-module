@@ -1,6 +1,8 @@
-package ru.tecius.telemed.processor.generator;
+package ru.tecius.telemed.processor.generator.nativ;
 
-import static ru.tecius.telemed.processor.util.TypeResolver.createStaticStringField;
+import static javax.lang.model.element.Modifier.FINAL;
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static javax.lang.model.element.Modifier.STATIC;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -12,9 +14,9 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import lombok.RequiredArgsConstructor;
 import ru.tecius.telemed.annotation.SearchInfo;
-import ru.tecius.telemed.common.SearchInfoInterface;
-import ru.tecius.telemed.configuration.NativeSearchAttribute;
-import ru.tecius.telemed.configuration.NativeSearchAttributeConfig;
+import ru.tecius.telemed.common.nativ.SearchInfoInterface;
+import ru.tecius.telemed.configuration.nativ.NativeSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.NativeSearchAttributeConfig;
 
 @RequiredArgsConstructor
 public class NativeInfoClassGenerator {
@@ -73,6 +75,13 @@ public class NativeInfoClassGenerator {
         .initializer(nativeInfoCodeBlockGenerator.generateMultipleAttributesBlock(
             configs))
         .build());
+  }
+
+  private FieldSpec createStaticStringField(String name, String value) {
+    return FieldSpec.builder(String.class, name)
+        .addModifiers(PRIVATE, STATIC, FINAL)
+        .initializer("$S", value)
+        .build();
   }
 
 }

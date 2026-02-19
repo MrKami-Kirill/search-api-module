@@ -1,4 +1,4 @@
-package ru.tecius.telemed.service;
+package ru.tecius.telemed.service.nativ;
 
 import static java.lang.String.join;
 import static java.util.Objects.nonNull;
@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
-import ru.tecius.telemed.common.SearchInfoInterface;
-import ru.tecius.telemed.configuration.JoinInfo;
+import ru.tecius.telemed.common.nativ.SearchInfoInterface;
+import ru.tecius.telemed.configuration.nativ.JoinInfo;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;

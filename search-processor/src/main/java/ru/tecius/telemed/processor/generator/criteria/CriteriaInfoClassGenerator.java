@@ -1,4 +1,4 @@
-package ru.tecius.telemed.processor.generator;
+package ru.tecius.telemed.processor.generator.criteria;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -9,10 +9,10 @@ import java.util.Set;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import lombok.RequiredArgsConstructor;
-import ru.tecius.telemed.common.CriteriaInfoInterface;
-import ru.tecius.telemed.configuration.CriteriaJoinInfo;
-import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
-import ru.tecius.telemed.configuration.CriteriaSearchAttributeConfig;
+import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
+import ru.tecius.telemed.configuration.criteria.CriteriaJoinInfo;
+import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.CriteriaSearchAttributeConfig;
 
 /**
  * Генератор классов для CriteriaInfoInterface.

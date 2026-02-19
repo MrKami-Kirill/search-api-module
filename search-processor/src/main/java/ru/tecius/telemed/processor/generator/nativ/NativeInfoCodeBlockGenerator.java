@@ -1,4 +1,4 @@
-package ru.tecius.telemed.processor.generator;
+package ru.tecius.telemed.processor.generator.nativ;
 
 import static java.util.Comparator.comparing;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
@@ -9,13 +9,13 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import ru.tecius.telemed.configuration.AttributeType;
-import ru.tecius.telemed.configuration.JoinData;
-import ru.tecius.telemed.configuration.JoinInfo;
-import ru.tecius.telemed.configuration.JoinReferenceData;
-import ru.tecius.telemed.configuration.NativeSearchAttribute;
-import ru.tecius.telemed.configuration.NativeSearchAttributeConfig;
-import ru.tecius.telemed.enumeration.JoinTypeEnum;
+import ru.tecius.telemed.configuration.nativ.AttributeType;
+import ru.tecius.telemed.configuration.nativ.JoinData;
+import ru.tecius.telemed.configuration.nativ.JoinInfo;
+import ru.tecius.telemed.configuration.nativ.JoinReferenceData;
+import ru.tecius.telemed.configuration.nativ.NativeSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.NativeSearchAttributeConfig;
+import ru.tecius.telemed.configuration.nativ.JoinTypeEnum;
 
 public class NativeInfoCodeBlockGenerator {
 

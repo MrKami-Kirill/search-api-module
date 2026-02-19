@@ -1,9 +1,9 @@
-package ru.tecius.telemed.common;
+package ru.tecius.telemed.common.nativ;
 
 import java.util.Optional;
 import java.util.Set;
-import ru.tecius.telemed.configuration.JoinInfo;
-import ru.tecius.telemed.configuration.NativeSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.JoinInfo;
+import ru.tecius.telemed.configuration.nativ.NativeSearchAttribute;
 
 public interface SearchInfoInterface<E> {
 

@@ -1,9 +1,9 @@
-package ru.tecius.telemed.service;
+package ru.tecius.telemed.service.criteria;
 
 import jakarta.persistence.EntityManager;
 import java.util.LinkedList;
 import java.util.List;
-import ru.tecius.telemed.common.CriteriaInfoInterface;
+import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;

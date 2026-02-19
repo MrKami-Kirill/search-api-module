@@ -18,8 +18,8 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import ru.tecius.telemed.annotation.SearchInfo;
 import ru.tecius.telemed.processor.config.ConfigLoader;
 import ru.tecius.telemed.processor.error.ErrorHandler;
-import ru.tecius.telemed.processor.generator.NativeInfoClassGenerator;
-import ru.tecius.telemed.processor.generator.CriteriaInfoClassGenerator;
+import ru.tecius.telemed.processor.generator.nativ.NativeInfoClassGenerator;
+import ru.tecius.telemed.processor.generator.criteria.CriteriaInfoClassGenerator;
 import ru.tecius.telemed.processor.util.ProcessorConstants;
 
 @AutoService(Processor.class)

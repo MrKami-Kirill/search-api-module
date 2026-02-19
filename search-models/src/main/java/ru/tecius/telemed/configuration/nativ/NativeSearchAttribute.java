@@ -1,8 +1,8 @@
-package ru.tecius.telemed.configuration;
+package ru.tecius.telemed.configuration.nativ;
 
 import static java.util.stream.Stream.ofNullable;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
-import static ru.tecius.telemed.configuration.AttributeType.MULTIPLE;
+import static ru.tecius.telemed.configuration.nativ.AttributeType.MULTIPLE;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;

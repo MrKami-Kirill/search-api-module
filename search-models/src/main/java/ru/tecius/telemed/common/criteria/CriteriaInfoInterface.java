@@ -1,9 +1,9 @@
-package ru.tecius.telemed.common;
+package ru.tecius.telemed.common.criteria;
 
 import java.util.Optional;
 import java.util.Set;
-import ru.tecius.telemed.configuration.CriteriaJoinInfo;
-import ru.tecius.telemed.configuration.CriteriaSearchAttribute;
+import ru.tecius.telemed.configuration.criteria.CriteriaJoinInfo;
+import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 
 /**
  * Интерфейс для конфигурации Criteria API поиска.

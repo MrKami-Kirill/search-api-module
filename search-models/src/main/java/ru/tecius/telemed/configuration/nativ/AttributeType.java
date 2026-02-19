@@ -1,4 +1,4 @@
-package ru.tecius.telemed.configuration;
+package ru.tecius.telemed.configuration.nativ;
 
 public enum AttributeType {
 

@@ -1,9 +1,9 @@
-package ru.tecius.telemed.service;
+package ru.tecius.telemed.service.nativ;
 
 import jakarta.persistence.Query;
 import java.util.LinkedList;
 import java.util.List;
-import ru.tecius.telemed.common.SearchInfoInterface;
+import ru.tecius.telemed.common.nativ.SearchInfoInterface;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;

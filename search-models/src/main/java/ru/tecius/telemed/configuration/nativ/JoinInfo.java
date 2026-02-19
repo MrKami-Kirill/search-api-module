@@ -1,8 +1,7 @@
-package ru.tecius.telemed.configuration;
+package ru.tecius.telemed.configuration.nativ;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import ru.tecius.telemed.enumeration.JoinTypeEnum;
 
 public record JoinInfo(
     @NotNull(message = "Поле attributes.joinInfo.order не может быть null")

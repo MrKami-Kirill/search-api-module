@@ -1,10 +1,10 @@
-package ru.tecius.telemed.service;
+package ru.tecius.telemed.service.nativ;
 
 import java.util.LinkedList;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import ru.tecius.telemed.common.SearchInfoInterface;
+import ru.tecius.telemed.common.nativ.SearchInfoInterface;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
