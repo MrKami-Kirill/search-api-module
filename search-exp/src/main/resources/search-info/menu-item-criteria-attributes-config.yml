@@ -94,7 +94,7 @@ attributes:
   # ВАЖНО: entityPath начинается с "attachments" (имя поля-коллекции),
   # а НЕ с "document.attachments"!
   - jsonField: attachmentFileName
-    entityPath: attachments.fileName       # Начинается с коллекции!
+    entityPath: document.attachments.fileName       # Начинается с коллекции!
     fieldType: java.lang.String
     joinInfo:
       - path: document                     # Шаг 1: join @OneToOne поле
@@ -103,7 +103,7 @@ attributes:
         type: LEFT
 
   - jsonField: attachmentExtension
-    entityPath: attachments.extension
+    entityPath: document.attachments.extension
     fieldType: java.lang.String
     joinInfo:
       - path: document
