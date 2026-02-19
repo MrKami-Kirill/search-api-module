@@ -31,15 +31,17 @@ public class NativeSqlService<E> {
   private final RowMapper<E> rowMapper;
   private final SearchInfoInterface<E> searchInfoInterface;
 
-  public NativeSqlService(JdbcTemplate jdbcTemplate,
+  public NativeSqlService(
+      JdbcTemplate jdbcTemplate,
       RowMapper<E> rowMapper,
-      SearchInfoInterface<E> searchInfoInterface) {
+      SearchInfoInterface<E> searchInfoInterface
+  ) {
     this.jdbcTemplate = jdbcTemplate;
     this.rowMapper = rowMapper;
     this.searchInfoInterface = searchInfoInterface;
   }
 
-  protected SearchResponseDto<E> search(List<SearchDataDto> searchData,
+  public SearchResponseDto<E> search(List<SearchDataDto> searchData,
       LinkedList<SortDto> sort,
       PaginationDto pagination) {
     var sqlBuilder = new StringBuilder();
@@ -61,7 +63,6 @@ public class NativeSqlService<E> {
           .append(LF);
     }
 
-    // WHERE clause
     var whereConditions = new ArrayList<String>();
     if (isNotEmpty(searchData)) {
       searchData.forEach(data -> whereConditions.add(buildCondition(data, params)));
@@ -73,12 +74,10 @@ public class NativeSqlService<E> {
           .append(LF);
     }
 
-    // Get total count
     var countSql = "SELECT COUNT(%s.*) %s".formatted(searchInfoInterface.getTableAlias(),
         extractFromWithJoinsAndWhere(sqlBuilder.toString()));
     var totalElements = jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
-    // ORDER BY clause
     if (isNotEmpty(sort)) {
       var orderByClause = buildOrderByClauses(sort);
       if (nonNull(orderByClause)) {
@@ -87,7 +86,6 @@ public class NativeSqlService<E> {
       }
     }
 
-    // Pagination
     if (nonNull(pagination)) {
       var offset = nonNull(pagination.page()) ? pagination.page() * pagination.size() : 0;
       var limit = nonNull(pagination.page()) ? pagination.size() : 10;
@@ -96,7 +94,6 @@ public class NativeSqlService<E> {
       params.add(offset);
     }
 
-    // Execute query
     List<E> content = jdbcTemplate.query(sqlBuilder.toString(), rowMapper, params.toArray());
 
     var totalPages = totalElements != null && pagination != null && pagination.size() != null
@@ -111,7 +108,6 @@ public class NativeSqlService<E> {
   private Set<JoinInfo> collectUniqueJoins(List<SearchDataDto> searchData,
       LinkedList<SortDto> sort) {
     var joins = new LinkedHashSet<JoinInfo>();
-
     if (nonNull(searchData)) {
       searchData.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonField(
               dto.attribute())
