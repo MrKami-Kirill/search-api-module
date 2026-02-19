@@ -19,8 +19,8 @@ import ru.tecius.telemed.entity.MenuItemEntitySearchInfo;
 @Service
 public class MenuItemService {
 
-  private final NativeSqlService<MenuItemEntity> nativeSqlService;
-  private final EntityManagerSqlService<MenuItemEntity> entityManagerSqlService;
+  private final JdbcNativeSqlService<MenuItemEntity> jdbcNativeSqlService;
+  private final NativeEntitySqlService<MenuItemEntity> nativeEntitySqlService;
   private final ObjectMapper objectMapper;
 
   public MenuItemService(JdbcTemplate jdbcTemplate,
@@ -42,12 +42,12 @@ public class MenuItemService {
             .build();
       }
     };
-    this.nativeSqlService = new NativeSqlService<>(jdbcTemplate,
+    this.jdbcNativeSqlService = new JdbcNativeSqlService<>(jdbcTemplate,
         menuItemRowMapper,
         menuItemEntitySearchInfo);
     // Примечание: EntityGraph не поддерживается для нативных SQL запросов в Hibernate
     // Для подгрузки связанных сущностей используйте JPQL или добавьте JOIN'ы в конфигурацию
-    this.entityManagerSqlService = new EntityManagerSqlService<>(
+    this.nativeEntitySqlService = new NativeEntitySqlService<>(
         MenuItemEntity.class,
         entityManager,
         menuItemEntitySearchInfo
@@ -99,8 +99,8 @@ public class MenuItemService {
           ]
         }
         """, SearchRequestDto.class);
-    var result1 =  nativeSqlService.search(request.searchData(), request.sort(), request.pagination());
-    var result2 = entityManagerSqlService.search(request.searchData(), request.sort(), request.pagination());
+    var result1 =  jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    var result2 = nativeEntitySqlService.search(request.searchData(), request.sort(), request.pagination());
     return result2;
   }
 }

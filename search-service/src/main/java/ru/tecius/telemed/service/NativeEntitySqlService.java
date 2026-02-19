@@ -9,12 +9,12 @@ import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 
-public class EntityManagerSqlService<E> extends AbstractSqlService<E> {
+public class NativeEntitySqlService<E> extends AbstractNativeSqlSqlService<E> {
 
   private final Class<E> cls;
   private final jakarta.persistence.EntityManager entityManager;
 
-  public EntityManagerSqlService(
+  public NativeEntitySqlService(
       Class<E> cls,
       jakarta.persistence.EntityManager entityManager,
       SearchInfoInterface<E> searchInfoInterface

@@ -10,12 +10,12 @@ import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 
-public class NativeSqlService<E> extends AbstractSqlService<E> {
+public class JdbcNativeSqlService<E> extends AbstractNativeSqlSqlService<E> {
 
   private final JdbcTemplate jdbcTemplate;
   private final RowMapper<E> rowMapper;
 
-  public NativeSqlService(
+  public JdbcNativeSqlService(
       JdbcTemplate jdbcTemplate,
       RowMapper<E> rowMapper,
       SearchInfoInterface<E> searchInfoInterface
