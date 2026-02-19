@@ -67,9 +67,17 @@ public class MenuItemService {
             {
               "attribute": "attachmentFileName",
               "value": [
-                "Little_Pony"
+                "My_Little"
               ],
-              "operator": "CONTAIN"
+              "operator": "NOT_BEGIN"
+            },
+            {
+              "attribute": "documentId",
+              "value": [
+                "40",
+                "80"
+              ],
+              "operator": "BETWEEN"
             }
           ]
         }

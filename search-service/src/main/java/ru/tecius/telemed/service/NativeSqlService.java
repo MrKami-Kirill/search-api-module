@@ -17,12 +17,12 @@ import org.springframework.jdbc.core.RowMapper;
 import ru.tecius.telemed.common.SearchInfoInterface;
 import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.configuration.MultipleSearchAttribute;
-import ru.tecius.telemed.configuration.SimpleSearchAttribute;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
+import ru.tecius.telemed.exception.ValidationException;
 
 public class NativeSqlService<E> {
 
@@ -49,10 +49,10 @@ public class NativeSqlService<E> {
         .append(searchInfoInterface.getFullTableName());
     var uniqueJoins = collectUniqueJoins(searchData, sort);
 
-    if (!uniqueJoins.isEmpty()) {
+    if (isNotEmpty(uniqueJoins)) {
       var joinsSql = uniqueJoins.stream()
           .sorted(Comparator.comparingInt(JoinInfo::order))
-          .map(JoinInfo::createJoinString)
+          .map(searchInfoInterface::createJoinString)
           .collect(joining("\n"));
       sqlBuilder.append(" ").append(joinsSql);
     }
@@ -78,7 +78,8 @@ public class NativeSqlService<E> {
     }
 
     // Get total count
-    var countSql = "SELECT COUNT(mi.*) " + extractFromAndJoins(sqlBuilder.toString());
+    var countSql = "SELECT COUNT(" + searchInfoInterface.getTableAlias() + ".*) "
+        + extractFromWithJoinsAndWhere(sqlBuilder.toString());
     var totalElements = jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
     // ORDER BY clause
@@ -114,93 +115,87 @@ public class NativeSqlService<E> {
   private Set<JoinInfo> collectUniqueJoins(List<SearchDataDto> searchData, SortDto sort) {
     var joins = new LinkedHashSet<JoinInfo>();
 
-    // Collect joins from search filters
-    if (searchData != null) {
-      for (SearchDataDto data : searchData) {
-        String attribute = data.attribute();
-        searchInfoInterface.getMultipleAttributeByJsonField(attribute)
-            .ifPresent(attr -> joins.addAll(attr.joinInfo()));
-      }
+    if (nonNull(searchData)) {
+      searchData.forEach(data -> {
+        var attribute = data.attribute();
+        var optional = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
+        if (optional.isEmpty()) {
+          throw new ValidationException("Фильтрация по атрибуту %s запрещена".formatted(attribute));
+        }
+
+        joins.addAll(optional.get().joinInfo());
+      });
     }
 
-    // Collect joins from sort
     if (sort != null && sort.attribute() != null) {
-      searchInfoInterface.getMultipleAttributeByJsonField(sort.attribute())
-          .ifPresent(attr -> joins.addAll(attr.joinInfo()));
+      var attribute = sort.attribute();
+      var optional = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
+      if (optional.isEmpty()) {
+        throw new ValidationException("Сортировка по атрибуту %s запрещена".formatted(attribute));
+      }
+
+      joins.addAll(optional.get().joinInfo());
     }
 
     return joins;
   }
 
-  private String buildCondition(String attribute, Operator operator, List<String> values,
-      List<Object> params) {
-
-    // Check simple attributes
-    Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(
-        attribute);
+  private String buildCondition(SearchDataDto searchData, List<Object> params) {
+    var attribute = searchData.attribute();
+    var operator = searchData.operator();
+    var values = searchData.value();
+    var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
     if (simpleAttr.isPresent()) {
       var fullDbField = searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField();
       return buildSimpleCondition(fullDbField, operator, values, params);
     }
 
-    // Check multiple attributes
-    Optional<MultipleSearchAttribute> multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(
-        attribute);
-    return multipleAttr.map(multipleSearchAttribute -> buildSimpleCondition(
-        multipleSearchAttribute.getFullDbFieldName(), operator, values, params)).orElse(null);
+    return searchInfoInterface.getMultipleAttributeByJsonField(attribute)
+        .map(multipleSearchAttribute -> buildSimpleCondition(
+            multipleSearchAttribute.getFullDbFieldName(), operator, values, params))
+        .orElseThrow(() -> new ValidationException(
+            "Фильтрация по атрибуту %s запрещена".formatted(attribute)));
 
   }
 
   private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
       List<Object> params) {
-
-    // Build SQL condition template
     var condition = operator.buildCondition(dbField, values);
-
-    // Transform values and add to params
-    var transformedValues = operator.transformValues(values);
-    params.addAll(transformedValues);
-
+    params.addAll(operator.getTransformValueFunction().apply(values));
     return condition;
   }
 
   private String buildOrderByClause(SortDto sort) {
-    String attribute = sort.attribute();
-
-    // Check simple attributes
-    Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(
-        attribute);
+    var attribute = sort.attribute();
+    var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
     if (simpleAttr.isPresent()) {
-      return "ORDER BY " + searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField()
-          + " " + sort.direction();
+      return "ORDER BY %s %s".formatted(
+          searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField(),
+          sort.direction());
     }
 
     // Check multiple attributes
-    Optional<MultipleSearchAttribute> multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(
-        attribute);
+    var multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
     return multipleAttr.map(
         multipleSearchAttribute -> "ORDER BY " + multipleSearchAttribute.getFullDbFieldName() + " "
             + sort.direction()).orElse(null);
 
   }
 
-  private String extractFromAndJoins(String sql) {
+  private String extractFromWithJoinsAndWhere(String sql) {
     int fromIndex = sql.indexOf(" FROM ");
     if (fromIndex == -1) {
-      return "";
+      throw new RuntimeException("Ошибка составления sql: %s".formatted(sql));
     }
 
-    int whereIndex = sql.indexOf(" WHERE ", fromIndex);
-    int orderByIndex = sql.indexOf(" ORDER BY ", fromIndex);
-    int limitIndex = sql.indexOf(" LIMIT ", fromIndex);
+    var orderByIndex = sql.indexOf(" ORDER BY ", fromIndex);
+    var limitIndex = sql.indexOf(" LIMIT ", fromIndex);
 
     int endIndex = sql.length();
-    if (whereIndex != -1) {
-      endIndex = Math.min(endIndex, whereIndex);
-    }
     if (orderByIndex != -1) {
       endIndex = Math.min(endIndex, orderByIndex);
     }
+
     if (limitIndex != -1) {
       endIndex = Math.min(endIndex, limitIndex);
     }

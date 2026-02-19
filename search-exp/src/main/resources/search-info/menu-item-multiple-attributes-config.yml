@@ -47,3 +47,17 @@ multipleAttributes:
           alias: da
           column: document_id
         type: LEFT_JOIN
+  - jsonField: documentId
+    dbField: id
+    dbTableAlias: d
+    joinInfo:
+      - order: 1
+        reference:
+          table: menu_item
+          alias: mi
+          column: id
+        join:
+          table: documents
+          alias: d
+          column: menu_item_id
+        type: LEFT_JOIN
