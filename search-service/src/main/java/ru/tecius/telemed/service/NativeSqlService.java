@@ -4,19 +4,19 @@ import static java.lang.String.join;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.LF;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import ru.tecius.telemed.common.SearchInfoInterface;
 import ru.tecius.telemed.configuration.JoinInfo;
-import ru.tecius.telemed.configuration.MultipleSearchAttribute;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
@@ -38,7 +38,8 @@ public class NativeSqlService<E> {
     this.searchInfoInterface = searchInfoInterface;
   }
 
-  protected SearchResponseDto<E> search(List<SearchDataDto> searchData, SortDto sort,
+  protected SearchResponseDto<E> search(List<SearchDataDto> searchData,
+      LinkedList<SortDto> sort,
       PaginationDto pagination) {
     var sqlBuilder = new StringBuilder();
     var params = new LinkedList<>();
@@ -46,55 +47,50 @@ public class NativeSqlService<E> {
     sqlBuilder.append("SELECT ")
         .append(searchInfoInterface.getTableAlias())
         .append(".* FROM ")
-        .append(searchInfoInterface.getFullTableName());
+        .append(searchInfoInterface.getFullTableName())
+        .append(LF);
     var uniqueJoins = collectUniqueJoins(searchData, sort);
 
     if (isNotEmpty(uniqueJoins)) {
       var joinsSql = uniqueJoins.stream()
           .sorted(Comparator.comparingInt(JoinInfo::order))
           .map(searchInfoInterface::createJoinString)
-          .collect(joining("\n"));
-      sqlBuilder.append(" ").append(joinsSql);
+          .collect(joining(LF));
+      sqlBuilder.append(joinsSql)
+          .append(LF);
     }
 
     // WHERE clause
     var whereConditions = new ArrayList<String>();
     if (isNotEmpty(searchData)) {
-      searchData.forEach(data -> {
-        var attribute = data.attribute();
-        var operator = data.operator();
-        var values = data.value();
-
-        var condition = buildCondition(attribute, operator, values, params);
-        if (nonNull(condition)) {
-          whereConditions.add(condition);
-        }
-      });
+      searchData.forEach(data -> whereConditions.add(buildCondition(data, params)));
     }
 
     if (isNotEmpty(whereConditions)) {
-      sqlBuilder.append(" WHERE ")
-          .append(join("\n  AND ", whereConditions));
+      sqlBuilder.append("WHERE ")
+          .append(join("\nAND ", whereConditions))
+          .append(LF);
     }
 
     // Get total count
-    var countSql = "SELECT COUNT(" + searchInfoInterface.getTableAlias() + ".*) "
-        + extractFromWithJoinsAndWhere(sqlBuilder.toString());
+    var countSql = "SELECT COUNT(%s.*) %s".formatted(searchInfoInterface.getTableAlias(),
+        extractFromWithJoinsAndWhere(sqlBuilder.toString()));
     var totalElements = jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
     // ORDER BY clause
-    if (nonNull(sort) && nonNull(sort.attribute())) {
-      var orderByClause = buildOrderByClause(sort);
+    if (isNotEmpty(sort)) {
+      var orderByClause = buildOrderByClauses(sort);
       if (nonNull(orderByClause)) {
-        sqlBuilder.append(" ").append(orderByClause);
+        sqlBuilder.append(orderByClause)
+            .append(LF);
       }
     }
 
     // Pagination
     if (nonNull(pagination)) {
-      int offset = nonNull(pagination.page()) ? pagination.page() * pagination.size() : 0;
-      int limit = nonNull(pagination.page()) ? pagination.size() : 10;
-      sqlBuilder.append(" LIMIT ? OFFSET ?");
+      var offset = nonNull(pagination.page()) ? pagination.page() * pagination.size() : 0;
+      var limit = nonNull(pagination.page()) ? pagination.size() : 10;
+      sqlBuilder.append("LIMIT ? OFFSET ?");
       params.add(String.valueOf(limit));
       params.add(offset);
     }
@@ -102,8 +98,7 @@ public class NativeSqlService<E> {
     // Execute query
     List<E> content = jdbcTemplate.query(sqlBuilder.toString(), rowMapper, params.toArray());
 
-    // Calculate pagination info
-    int totalPages = totalElements != null && pagination != null && pagination.size() != null
+    var totalPages = totalElements != null && pagination != null && pagination.size() != null
         ? (int) Math.ceil((double) totalElements / pagination.size())
         : 0;
     Boolean moreRows =
@@ -112,29 +107,20 @@ public class NativeSqlService<E> {
     return new SearchResponseDto<>(totalElements, totalPages, moreRows, content);
   }
 
-  private Set<JoinInfo> collectUniqueJoins(List<SearchDataDto> searchData, SortDto sort) {
+  private Set<JoinInfo> collectUniqueJoins(List<SearchDataDto> searchData,
+      LinkedList<SortDto> sort) {
     var joins = new LinkedHashSet<JoinInfo>();
 
     if (nonNull(searchData)) {
-      searchData.forEach(data -> {
-        var attribute = data.attribute();
-        var optional = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
-        if (optional.isEmpty()) {
-          throw new ValidationException("Фильтрация по атрибуту %s запрещена".formatted(attribute));
-        }
-
-        joins.addAll(optional.get().joinInfo());
-      });
+      searchData.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonField(
+              dto.attribute())
+          .ifPresent(attr -> joins.addAll(attr.joinInfo())));
     }
 
-    if (sort != null && sort.attribute() != null) {
-      var attribute = sort.attribute();
-      var optional = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
-      if (optional.isEmpty()) {
-        throw new ValidationException("Сортировка по атрибуту %s запрещена".formatted(attribute));
-      }
-
-      joins.addAll(optional.get().joinInfo());
+    if (isNotEmpty(sort)) {
+      sort.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonField(
+              dto.attribute())
+          .ifPresent(attr -> joins.addAll(attr.joinInfo())));
     }
 
     return joins;
@@ -146,8 +132,8 @@ public class NativeSqlService<E> {
     var values = searchData.value();
     var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
     if (simpleAttr.isPresent()) {
-      var fullDbField = searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField();
-      return buildSimpleCondition(fullDbField, operator, values, params);
+      var fullDbFieldName = searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField();
+      return buildSimpleCondition(fullDbFieldName, operator, values, params);
     }
 
     return searchInfoInterface.getMultipleAttributeByJsonField(attribute)
@@ -165,21 +151,32 @@ public class NativeSqlService<E> {
     return condition;
   }
 
-  private String buildOrderByClause(SortDto sort) {
+  private String buildOrderByClauses(LinkedList<SortDto> sort) {
+    var orderByParts = sort.stream()
+        .map(this::buildSingleOrderByClause)
+        .filter(Objects::nonNull)
+        .toList();
+
+    if (orderByParts.isEmpty()) {
+      return null;
+    }
+
+    return "ORDER BY " + join(", ", orderByParts);
+  }
+
+  private String buildSingleOrderByClause(SortDto sort) {
     var attribute = sort.attribute();
     var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
     if (simpleAttr.isPresent()) {
-      return "ORDER BY %s %s".formatted(
+      return "%s %s".formatted(
           searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField(),
           sort.direction());
     }
 
-    // Check multiple attributes
     var multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
-    return multipleAttr.map(
-        multipleSearchAttribute -> "ORDER BY " + multipleSearchAttribute.getFullDbFieldName() + " "
-            + sort.direction()).orElse(null);
-
+    return multipleAttr.map(attr -> "%s %s".formatted(attr.getFullDbFieldName(), sort.direction()))
+        .orElseThrow(() -> new ValidationException(
+            "Сортировка по атрибуту %s запрещена".formatted(attribute)));
   }
 
   private String extractFromWithJoinsAndWhere(String sql) {

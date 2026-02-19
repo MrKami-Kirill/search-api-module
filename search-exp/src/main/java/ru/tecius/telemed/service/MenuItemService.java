@@ -52,10 +52,16 @@ public class MenuItemService {
             "page": 0,
             "size": 10
           },
-          "sort": {
-            "attribute": "createDate",
-            "direction": "DESC"
-          },
+          "sort": [
+            {
+              "attribute": "createDate",
+              "direction": "DESC"
+            },
+            {
+              "attribute": "title",
+              "direction": "ASC"
+            }
+          ],
           "searchData": [
             {
               "attribute": "isActive",
