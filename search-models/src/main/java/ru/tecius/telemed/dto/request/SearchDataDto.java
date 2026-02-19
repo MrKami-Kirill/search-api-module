@@ -1,9 +1,9 @@
 package ru.tecius.telemed.dto.request;
 
-import java.util.List;
+import java.util.LinkedList;
 
 public record SearchDataDto(String attribute,
-                            List<String> value,
+                            LinkedList<String> value,
                             Operator operator) {
 
 }

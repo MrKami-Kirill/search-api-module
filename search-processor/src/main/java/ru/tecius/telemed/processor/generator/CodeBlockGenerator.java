@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.configuration.JoinData;
 import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.configuration.JoinReferenceData;
@@ -26,9 +27,13 @@ public class CodeBlockGenerator {
         .toList();
 
     for (var i = 0; i < simpleAttributes.size(); i++) {
-      var simpleAttribute = simpleAttributes.get(i);
-      initializer.add("\tnew $T($S, $S)", SimpleSearchAttribute.class,
-          simpleAttribute.jsonField(), simpleAttribute.dbField());
+      var attr = simpleAttributes.get(i);
+      initializer.add("\tnew $T($S, $S, $T.$L)",
+          SimpleSearchAttribute.class,
+          attr.jsonField(),
+          attr.dbField(),
+          FieldType.class,
+          attr.fieldType());
       if (i < simpleAttributes.size() - 1) {
         initializer.add(",\n");
       }
@@ -49,11 +54,13 @@ public class CodeBlockGenerator {
       var attr = multipleAttributes.get(i);
       var joinsBlock = generateJoinInfoBlock(attr.joinInfo());
 
-      initializer.add("\tnew $T($S, $S, $S, $L)",
+      initializer.add("\tnew $T($S, $S, $S, $T.$L, $L)",
           MultipleSearchAttribute.class,
           attr.jsonField(),
           attr.dbField(),
           attr.dbTableAlias(),
+          FieldType.class,
+          attr.fieldType(),
           joinsBlock);
 
       if (i < multipleAttributes.size() - 1) {

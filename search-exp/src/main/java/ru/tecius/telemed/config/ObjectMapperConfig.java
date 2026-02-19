@@ -4,6 +4,9 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.ADJUST_DATES
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
 import static java.time.format.DateTimeFormatter.ofPattern;
+import static util.Constants.BIRTHDAY_DATE_FORMAT;
+import static util.Constants.ISO_DATE_FORMAT;
+import static util.Constants.LOCAL_DATE_TIME_FORMAT;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -27,10 +30,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class ObjectMapperConfig {
-
-  public static final String ISO_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX";
-  public static final String LOCAL_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
-  public static final String BIRTHDAY_DATE_FORMAT = "yyyy-MM-dd";
 
   /**
    * Создаёт и настраивает {@link ObjectMapper } для JSON сериализации/десериализации.

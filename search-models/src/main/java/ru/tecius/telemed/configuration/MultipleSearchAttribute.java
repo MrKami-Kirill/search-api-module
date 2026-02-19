@@ -17,6 +17,8 @@ public record MultipleSearchAttribute(
     String dbField,
     @NotBlank(message = "Поле multipleAttributes.dbTableAlias не может быть пустым")
     String dbTableAlias,
+    @NotNull(message = "Поле multipleAttributes.fieldType не может быть null")
+    FieldType fieldType,
     @NotNull(message = "Поле multipleAttributes.joinInfo не может быть null")
     @NotEmpty(message = "Поле multipleAttributes.joinInfo не может быть пустым")
     @Valid

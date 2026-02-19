@@ -2,6 +2,7 @@ multipleAttributes:
   - jsonField: attachmentFileName
     dbField: file_name
     dbTableAlias: da
+    fieldType: STRING
     joinInfo:
       - order: 1
         reference:
@@ -26,6 +27,7 @@ multipleAttributes:
   - jsonField: attachmentExtension
     dbField: extension
     dbTableAlias: da
+    fieldType: STRING
     joinInfo:
       - order: 1
         reference:
@@ -50,6 +52,7 @@ multipleAttributes:
   - jsonField: documentId
     dbField: id
     dbTableAlias: d
+    fieldType: NUMERIC
     joinInfo:
       - order: 1
         reference:

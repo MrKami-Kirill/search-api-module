@@ -16,6 +16,7 @@ import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import ru.tecius.telemed.common.SearchInfoInterface;
+import ru.tecius.telemed.configuration.FieldType;
 import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
@@ -132,22 +133,24 @@ public class NativeSqlService<E> {
     var values = searchData.value();
     var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
     if (simpleAttr.isPresent()) {
-      var fullDbFieldName = searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField();
-      return buildSimpleCondition(fullDbFieldName, operator, values, params);
+      var attr = simpleAttr.get();
+      var fullDbFieldName = searchInfoInterface.getTableAlias() + "." + attr.dbField();
+      return buildSimpleCondition(fullDbFieldName, operator, values, params, attr.fieldType());
     }
 
     return searchInfoInterface.getMultipleAttributeByJsonField(attribute)
         .map(multipleSearchAttribute -> buildSimpleCondition(
-            multipleSearchAttribute.getFullDbFieldName(), operator, values, params))
+            multipleSearchAttribute.getFullDbFieldName(), operator, values, params,
+            multipleSearchAttribute.fieldType()))
         .orElseThrow(() -> new ValidationException(
             "Фильтрация по атрибуту %s запрещена".formatted(attribute)));
 
   }
 
   private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
-      List<Object> params) {
+      List<Object> params, FieldType fieldType) {
     var condition = operator.buildCondition(dbField, values);
-    params.addAll(operator.getTransformValueFunction().apply(values));
+    params.addAll(operator.getTransformValueFunction().apply(values, fieldType));
     return condition;
   }
 

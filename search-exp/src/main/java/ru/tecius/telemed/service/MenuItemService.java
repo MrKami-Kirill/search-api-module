@@ -78,12 +78,11 @@ public class MenuItemService {
               "operator": "NOT_BEGIN"
             },
             {
-              "attribute": "documentId",
+              "attribute": "createDate",
               "value": [
-                "40",
-                "80"
+                "2026-02-12Т09:00:00+03:00"
               ],
-              "operator": "BETWEEN"
+              "operator": "MORE_OR_EQUAL"
             }
           ]
         }
