@@ -44,6 +44,8 @@ public class NativeSqlService<E> {
     var params = new LinkedList<>();
 
     sqlBuilder.append("SELECT ")
+        .append(searchInfoInterface.getTableAlias())
+        .append(".* FROM ")
         .append(searchInfoInterface.getFullTableName());
     var uniqueJoins = collectUniqueJoins(searchData, sort);
 
@@ -72,11 +74,11 @@ public class NativeSqlService<E> {
 
     if (isNotEmpty(whereConditions)) {
       sqlBuilder.append(" WHERE ")
-          .append(join("\nAND", whereConditions));
+          .append(join("\n  AND ", whereConditions));
     }
 
     // Get total count
-    var countSql = "SELECT COUNT(*) " + extractFromAndJoins(sqlBuilder.toString());
+    var countSql = "SELECT COUNT(mi.*) " + extractFromAndJoins(sqlBuilder.toString());
     var totalElements = jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
     // ORDER BY clause
@@ -137,7 +139,8 @@ public class NativeSqlService<E> {
     Optional<SimpleSearchAttribute> simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(
         attribute);
     if (simpleAttr.isPresent()) {
-      return buildSimpleCondition(simpleAttr.get().dbField(), operator, values, params);
+      var fullDbField = searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField();
+      return buildSimpleCondition(fullDbField, operator, values, params);
     }
 
     // Check multiple attributes

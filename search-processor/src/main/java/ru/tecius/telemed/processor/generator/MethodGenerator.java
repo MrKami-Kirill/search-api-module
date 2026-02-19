@@ -56,7 +56,7 @@ public class MethodGenerator {
         .addModifiers(PUBLIC)
         .returns(String.class)
         .addStatement("""
-            return "%s.%s %s".formatted(SCHEMA_NAME, TABLE_NAME, TABLE_ALIAS)""")
+            return "%s.%s AS %s".formatted(SCHEMA_NAME, TABLE_NAME, TABLE_ALIAS)""")
         .build());
   }
 

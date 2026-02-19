@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import lombok.SneakyThrows;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -43,8 +44,9 @@ public class MenuItemService {
     this.objectMapper = objectMapper;
   }
 
+  @SneakyThrows
   public SearchResponseDto<MenuItemEntity> search() {
-    var request = objectMapper.convertValue("""
+    var request = objectMapper.readValue("""
         {
           "pagination": {
             "page": 0,
