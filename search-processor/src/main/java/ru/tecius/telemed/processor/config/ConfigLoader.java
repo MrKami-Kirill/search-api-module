@@ -12,29 +12,36 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.ProcessingEnvironment;
+import org.springframework.validation.Validator;
 import org.yaml.snakeyaml.Yaml;
 import ru.tecius.telemed.configuration.MultipleSearchAttributeConfig;
 import ru.tecius.telemed.configuration.SimpleSearchAttributeConfig;
 import ru.tecius.telemed.processor.error.ErrorHandler;
 import ru.tecius.telemed.processor.exception.ProcessingException;
+import ru.tecius.telemed.processor.validator.ValidationHandler;
 
 public class ConfigLoader {
 
   private final ProcessingEnvironment processingEnv;
   private final ObjectMapper objectMapper;
   private final ErrorHandler errorHandler;
+  private final ValidationHandler<SimpleSearchAttributeConfig> simpleConfigValidator;
+  private final ValidationHandler<MultipleSearchAttributeConfig> multipleConfigValidator;
 
-  public ConfigLoader(ProcessingEnvironment processingEnv) {
+  public ConfigLoader(ProcessingEnvironment processingEnv, Validator validator) {
     this.processingEnv = processingEnv;
     this.objectMapper = new ObjectMapper();
     this.errorHandler = new ErrorHandler(processingEnv.getMessager());
+    this.simpleConfigValidator = new ValidationHandler<>(validator, this.errorHandler);
+    this.multipleConfigValidator = new ValidationHandler<>(validator, this.errorHandler);
   }
 
   public List<SimpleSearchAttributeConfig> loadSimpleConfigs(String[] paths) {
     var configs = new ArrayList<SimpleSearchAttributeConfig>();
     for (var path : paths) {
-      configs.add(loadConfig(SEARCH_INFO_PATH_TEMPLATE.formatted(path),
-          SimpleSearchAttributeConfig.class));
+      configs.add(simpleConfigValidator.validate(
+          loadConfig(SEARCH_INFO_PATH_TEMPLATE.formatted(path),
+              SimpleSearchAttributeConfig.class)));
     }
     return configs;
   }
@@ -42,8 +49,9 @@ public class ConfigLoader {
   public List<MultipleSearchAttributeConfig> loadMultipleConfigs(String[] paths) {
     var configs = new ArrayList<MultipleSearchAttributeConfig>();
     for (var path : paths) {
-      configs.add(loadConfig(SEARCH_INFO_PATH_TEMPLATE.formatted(path),
-          MultipleSearchAttributeConfig.class));
+      configs.add(multipleConfigValidator.validate(
+          loadConfig(SEARCH_INFO_PATH_TEMPLATE.formatted(path),
+              MultipleSearchAttributeConfig.class)));
     }
     return configs;
   }

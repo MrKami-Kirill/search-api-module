@@ -7,6 +7,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import java.util.Optional;
 import java.util.Set;
+import ru.tecius.telemed.configuration.JoinInfo;
 import ru.tecius.telemed.configuration.MultipleSearchAttribute;
 import ru.tecius.telemed.configuration.SimpleSearchAttribute;
 
@@ -16,10 +17,12 @@ public class MethodGenerator {
     addGetSchemaNameMethod(classBuilder);
     addGetTableNameMethod(classBuilder);
     addGetTableAliasMethod(classBuilder);
+    addGetFullTableNameMethod(classBuilder);
     addGetSimpleAttributesMethod(classBuilder);
     addGetSimpleAttributeByJsonFieldMethod(classBuilder);
     addGetMultipleAttributesMethod(classBuilder);
     addGetMultipleAttributeByJsonFieldMethod(classBuilder);
+    addCreateJoinStringMethod(classBuilder);
   }
 
   private void addGetSchemaNameMethod(TypeSpec.Builder classBuilder) {
@@ -46,6 +49,16 @@ public class MethodGenerator {
         .addModifiers(PUBLIC)
         .returns(String.class)
         .addStatement("return TABLE_ALIAS")
+        .build());
+  }
+
+  private void addGetFullTableNameMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getFullTableName")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(String.class)
+        .addStatement("""
+            return "%s.%s %s".formatted(SCHEMA_NAME, TABLE_NAME, TABLE_ALIAS)""")
         .build());
   }
 
@@ -90,6 +103,20 @@ public class MethodGenerator {
             return MULTIPLE_ATTRIBUTES.stream()
                     .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
                     .findAny()""")
+        .build());
+  }
+
+  private void addCreateJoinStringMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("createJoinString")
+        .addParameter(JoinInfo.class, "joinInfo")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(String.class)
+        .addStatement("""
+            return "%s %s AS %s ON %s.%s = %s.%s".formatted(joinInfo.type().getValue(),
+                    joinInfo.join().table(), joinInfo.join().alias(),
+                    joinInfo.reference().alias(), joinInfo.reference().column(),
+                    joinInfo.join().alias(), joinInfo.join().column())""")
         .build());
   }
 

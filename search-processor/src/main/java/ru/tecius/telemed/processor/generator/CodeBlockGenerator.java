@@ -4,9 +4,12 @@ import static java.util.Comparator.comparing;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import ru.tecius.telemed.configuration.JoinData;
 import ru.tecius.telemed.configuration.JoinInfo;
+import ru.tecius.telemed.configuration.JoinReferenceData;
 import ru.tecius.telemed.configuration.MultipleSearchAttribute;
 import ru.tecius.telemed.configuration.MultipleSearchAttributeConfig;
 import ru.tecius.telemed.configuration.SimpleSearchAttribute;
@@ -46,10 +49,11 @@ public class CodeBlockGenerator {
       var attr = multipleAttributes.get(i);
       var joinsBlock = generateJoinInfoBlock(attr.joinInfo());
 
-      initializer.add("\tnew $T($S, $S, $L)",
+      initializer.add("\tnew $T($S, $S, $S, $L)",
           MultipleSearchAttribute.class,
           attr.jsonField(),
           attr.dbField(),
+          attr.dbTableAlias(),
           joinsBlock);
 
       if (i < multipleAttributes.size() - 1) {
@@ -60,23 +64,30 @@ public class CodeBlockGenerator {
     return initializer.add(")").build();
   }
 
-  private CodeBlock generateJoinInfoBlock(Set<JoinInfo> joinInfos) {
+  private CodeBlock generateJoinInfoBlock(LinkedHashSet<JoinInfo> joinInfos) {
     return CodeBlock.builder()
-        .add("$T.of(\n", Set.class)
+        .add("new $T<>($T.of(\n", LinkedHashSet.class, List.class)
+        .indent()
         .add(joinInfos.stream()
             .sorted(comparing(JoinInfo::order))
-            .map(j -> CodeBlock.of("\t\tnew $T($L, $S, $S, $S, $S, $T.$L)",
+            .map(j -> CodeBlock.of(
+                "new $T($L, new $T($S, $S, $S), new $T($S, $S, $S), $T.$L)",
                 JoinInfo.class,
                 j.order(),
-                j.referenceJoinColumn(),
-                j.joinTable(),
-                j.joinTableAlias(),
-                j.joinColumn(),
+                JoinReferenceData.class,
+                j.reference().table(),
+                j.reference().alias(),
+                j.reference().column(),
+                JoinData.class,
+                j.join().table(),
+                j.join().alias(),
+                j.join().column(),
                 JoinTypeEnum.class,
-                j.joinType().name()
+                j.type().name()
             ))
             .collect(CodeBlock.joining(",\n")))
-        .add(")")
+        .unindent()
+        .add("\n))")
         .build();
   }
 

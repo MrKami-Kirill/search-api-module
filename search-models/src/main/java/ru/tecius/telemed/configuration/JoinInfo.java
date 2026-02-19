@@ -1,12 +1,20 @@
 package ru.tecius.telemed.configuration;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import ru.tecius.telemed.enumeration.JoinTypeEnum;
 
-public record JoinInfo(Integer order,
-                       String referenceJoinColumn,
-                       String joinTable,
-                       String joinTableAlias,
-                       String joinColumn,
-                       JoinTypeEnum joinType) {
+public record JoinInfo(
+    @NotNull(message = "Поле multipleAttributes.joinInfo.order не может быть null")
+    Integer order,
+    @NotNull(message = "Поле multipleAttributes.joinInfo.reference не может быть null")
+    @Valid
+    JoinReferenceData reference,
+    @NotNull(message = "Поле multipleAttributes.joinInfo.join не может быть null")
+    @Valid
+    JoinData join,
+    @NotNull(message = "Поле multipleAttributes.joinInfo.type не может быть null")
+    JoinTypeEnum type
+) {
 
 }

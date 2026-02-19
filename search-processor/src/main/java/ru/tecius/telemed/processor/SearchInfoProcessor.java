@@ -14,6 +14,7 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import ru.tecius.telemed.annotation.SearchInfo;
 import ru.tecius.telemed.processor.config.ConfigLoader;
 import ru.tecius.telemed.processor.error.ErrorHandler;
@@ -48,7 +49,9 @@ public class SearchInfoProcessor extends AbstractProcessor {
 
   private void initHelpers() {
     if (isNull(configLoader)) {
-      configLoader = new ConfigLoader(processingEnv);
+      var factoryBean = new LocalValidatorFactoryBean();
+      factoryBean.afterPropertiesSet();
+      configLoader = new ConfigLoader(processingEnv, factoryBean);
       classGenerator = new ClassGenerator();
       errorHandler = new ErrorHandler(processingEnv.getMessager());
     }

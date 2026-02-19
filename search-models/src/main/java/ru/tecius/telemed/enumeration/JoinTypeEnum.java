@@ -1,5 +1,10 @@
 package ru.tecius.telemed.enumeration;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@Getter
 public enum JoinTypeEnum {
 
   INNER_JOIN("INNER JOIN"),
@@ -10,12 +15,4 @@ public enum JoinTypeEnum {
   LATERAL_JOIN("LATERAL JOIN");
 
   private final String value;
-
-  JoinTypeEnum(String value) {
-    this.value = value;
-  }
-
-  public String getValue() {
-    return value;
-  }
 }
