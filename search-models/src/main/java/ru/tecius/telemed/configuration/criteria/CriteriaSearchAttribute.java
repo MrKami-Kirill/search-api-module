@@ -1,5 +1,7 @@
 package ru.tecius.telemed.configuration.criteria;
 
+import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -54,6 +56,6 @@ public record CriteriaSearchAttribute(
    * Проверяет, требуется ли join для этого атрибута.
    */
   public boolean requiresJoin() {
-    return joinInfo != null && !joinInfo.isEmpty();
+    return isNotEmpty(joinInfo);
   }
 }

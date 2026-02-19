@@ -5,16 +5,15 @@ import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Fetch;
-import jakarta.persistence.criteria.FetchParent;
 import jakarta.persistence.criteria.From;
 import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
@@ -36,7 +35,6 @@ import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
-import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.exception.ValidationException;
 
 /**
@@ -96,39 +94,9 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   /**
-   * Выполняет поиск с заданными параметрами.
-   *
-   * @param searchData условия поиска
-   * @param sort       сортировка
-   * @param pagination пагинация
-   * @param fetchPaths пути к полям для fetch join (например, ["document", "document.attachments"])
-   * @return результат поиска с пагинацией
-   */
-  protected SearchResponseDto<E> search(
-      List<SearchDataDto> searchData,
-      LinkedList<SortDto> sort,
-      PaginationDto pagination,
-      List<String> fetchPaths
-  ) {
-    var cb = entityManager.getCriteriaBuilder();
-
-    // Сначала считаем общее количество
-    var count = executeCountQuery(cb, searchData);
-
-    // Затем выполняем основной запрос
-    var content = executeSearchQuery(cb, searchData, sort, pagination, fetchPaths);
-
-    var pageSize = getPageSize(pagination, 10);
-    var totalPages = calculateTotalPages(count, pageSize);
-    Boolean moreRows = calculateMoreRows(pagination, totalPages);
-
-    return new SearchResponseDto<>(count.intValue(), totalPages, moreRows, content);
-  }
-
-  /**
    * Выполняет count запрос для подсчета общего количества записей.
    */
-  private Long executeCountQuery(CriteriaBuilder cb, List<SearchDataDto> searchData) {
+  protected Long executeCountQuery(CriteriaBuilder cb, List<SearchDataDto> searchData) {
     var criteriaQuery = cb.createQuery(Long.class);
     var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
@@ -150,21 +118,15 @@ public abstract class AbstractCriteriaSqlService<E> {
   /**
    * Выполняет основной поисковый запрос.
    */
-  private List<E> executeSearchQuery(
+  protected List<E> executeSearchQuery(
       CriteriaBuilder cb,
       List<SearchDataDto> searchData,
       LinkedList<SortDto> sort,
-      PaginationDto pagination,
-      List<String> fetchPaths
+      PaginationDto pagination
   ) {
     var criteriaQuery = cb.createQuery(criteriaInfoInterface.getEntityClass());
     var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
-
-    // Добавляем fetch joins для оптимизации
-    if (isNotEmpty(fetchPaths)) {
-      addFetchJoins(root, fetchPaths, joinContext);
-    }
 
     // Добавляем необходимые joins для фильтрации и сортировки
     addJoinsForSearch(root, searchData, joinContext);
@@ -199,45 +161,6 @@ public abstract class AbstractCriteriaSqlService<E> {
   }
 
   /**
-   * Добавляет fetch joins для оптимизации загрузки связанных сущностей. Fetch joins используются
-   * для загрузки связанных данных в одном запросе, избегая проблемы N+1.
-   */
-  private void addFetchJoins(Root<E> root, List<String> fetchPaths, JoinContext joinContext) {
-    for (var fetchPath : fetchPaths) {
-      // Разбиваем путь на сегменты: "document.attachments" -> ["document", "attachments"]
-      var segments = fetchPath.split("\\.");
-
-      FetchParent<?, ?> currentFetchParent = root;
-      var currentPath = "";
-
-      for (var i = 0; i < segments.length; i++) {
-        var segment = segments[i];
-        currentPath = currentPath.isEmpty() ? segment : currentPath + "." + segment;
-
-        // Проверяем, не добавляли ли мы уже такой fetch
-        if (!joinContext.hasJoin(currentPath)) {
-          // Добавляем fetch join
-          var fetch = currentFetchParent.fetch(segment, JoinType.LEFT);
-          joinContext.addFetch(currentPath, fetch);
-          currentFetchParent = fetch;
-        } else {
-          // Используем уже созданный fetch
-          var existingFetch = joinContext.getFetch(currentPath);
-          if (existingFetch != null) {
-            currentFetchParent = existingFetch;
-          } else {
-            // Если это join (не fetch), используем его как FetchParent
-            var existingJoin = joinContext.getJoin(currentPath);
-            if (existingJoin != null) {
-              currentFetchParent = existingJoin;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
    * Проверяет, есть ли среди joins joins к коллекциям (@OneToMany, @ManyToMany). Такие joins могут
    * привести к дублированию результатов.
    */
@@ -256,13 +179,11 @@ public abstract class AbstractCriteriaSqlService<E> {
   private void addJoinsForSearch(Root<E> root, List<SearchDataDto> searchData,
       JoinContext joinContext) {
     if (isNotEmpty(searchData)) {
-      searchData.forEach(data -> {
-        var attr = criteriaInfoInterface.getCriteriaAttributeByJsonField(data.attribute())
-            .orElse(null);
-        if (attr != null && attr.requiresJoin()) {
-          addJoinsFromAttribute(root, attr, joinContext);
-        }
-      });
+      searchData.forEach(
+          dto -> criteriaInfoInterface.getCriteriaAttributeByJsonField(
+                  dto.attribute())
+              .filter(CriteriaSearchAttribute::requiresJoin)
+              .ifPresent(attr -> addJoinsFromAttribute(root, attr, joinContext)));
     }
   }
 
@@ -271,13 +192,10 @@ public abstract class AbstractCriteriaSqlService<E> {
    */
   private void addJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
     if (isNotEmpty(sort)) {
-      for (var sortDto : sort) {
-        var attr = criteriaInfoInterface.getCriteriaAttributeByJsonField(sortDto.attribute())
-            .orElse(null);
-        if (attr != null && attr.requiresJoin()) {
-          addJoinsFromAttribute(root, attr, joinContext);
-        }
-      }
+      sort.forEach(dto -> criteriaInfoInterface.getCriteriaAttributeByJsonField(
+              dto.attribute())
+          .filter(CriteriaSearchAttribute::requiresJoin)
+          .ifPresent(attr -> addJoinsFromAttribute(root, attr, joinContext)));
     }
   }
 
@@ -287,21 +205,15 @@ public abstract class AbstractCriteriaSqlService<E> {
    */
   private void addJoinsFromAttribute(Root<E> root, CriteriaSearchAttribute attr,
       JoinContext joinContext) {
-    if (!attr.requiresJoin()) {
-      return;
-    }
-
     From<?, ?> currentFrom = root;
-    var currentPath = "";
+    var currentPath = EMPTY;
 
     for (var joinInfo : attr.joinInfo()) {
       var joinPath = joinInfo.path();
       currentPath = isBlank(currentPath) ? joinPath : currentPath + "." + joinPath;
-
       // Проверяем, не добавляли ли мы уже такой join
       if (!joinContext.hasJoin(currentPath)) {
-        var joinType = joinInfo.type();
-        var join = currentFrom.join(joinPath, joinType);
+        var join = currentFrom.join(joinPath, joinInfo.type());
         joinContext.addJoin(currentPath, join);
         currentFrom = join;
       } else {
@@ -408,8 +320,12 @@ public abstract class AbstractCriteriaSqlService<E> {
       List<String> values,
       Class<?> fieldType
   ) {
-    var transformedValues = values;
-    //operator.getNativeTransformValueFunction().apply(values, fieldType);
+    if (!operator.validate(values)) {
+      throw new ValidationException("Для оператора %s переданы некорректные value"
+          .formatted(operator.name()));
+    }
+
+    var transformedValues = operator.getTransformValueFunction().apply(values, fieldType);
 
     return switch (operator) {
       case EQUAL ->
@@ -584,17 +500,17 @@ public abstract class AbstractCriteriaSqlService<E> {
     }
   }
 
-  private Integer getPageSize(PaginationDto pagination, Integer defaultPageSize) {
+  protected Integer getPageSize(PaginationDto pagination, Integer defaultPageSize) {
     return nonNull(pagination) && nonNull(pagination.page()) ? pagination.size() : defaultPageSize;
   }
 
-  private int calculateTotalPages(Long totalElements, int pageSize) {
+  protected int calculateTotalPages(Long totalElements, int pageSize) {
     return nonNull(totalElements)
         ? (int) Math.ceil((double) totalElements / pageSize)
         : 0;
   }
 
-  private boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
+  protected boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
     return nonNull(pagination) && nonNull(pagination.page())
         && (pagination.page() + 1) < totalPages;
   }

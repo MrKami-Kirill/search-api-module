@@ -16,12 +16,11 @@ import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
  */
 public class CriteriaInfoMethodGenerator {
 
-  public void addInterfaceMethods(TypeSpec.Builder classBuilder, ClassName entityClass) {
+  public void addInterfaceMethods(TypeSpec.Builder classBuilder) {
     addGetEntityClassMethod(classBuilder);
     addGetCriteriaAttributesMethod(classBuilder);
     addGetCriteriaAttributeByJsonFieldMethod(classBuilder);
     addGetAllJoinsMethod(classBuilder);
-    addHasAttributeMethod(classBuilder);
   }
 
   private void addGetEntityClassMethod(TypeSpec.Builder classBuilder) {
@@ -61,16 +60,6 @@ public class CriteriaInfoMethodGenerator {
         .addModifiers(PUBLIC)
         .returns(ParameterizedTypeName.get(Set.class, CriteriaJoinInfo.class))
         .addStatement("return ALL_JOINS")
-        .build());
-  }
-
-  private void addHasAttributeMethod(TypeSpec.Builder classBuilder) {
-    classBuilder.addMethod(MethodSpec.methodBuilder("hasAttribute")
-        .addParameter(String.class, "jsonField")
-        .addAnnotation(Override.class)
-        .addModifiers(PUBLIC)
-        .returns(boolean.class)
-        .addStatement("return getCriteriaAttributeByJsonField(jsonField).isPresent()")
         .build());
   }
 }

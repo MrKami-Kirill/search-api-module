@@ -30,9 +30,4 @@ public interface CriteriaInfoInterface<E> {
    * Возвращает все join'ы, необходимые для поиска.
    */
   Set<CriteriaJoinInfo> getAllJoins();
-
-  /**
-   * Проверяет, существует ли атрибут с указанным JSON полем.
-   */
-  boolean hasAttribute(String jsonField);
 }

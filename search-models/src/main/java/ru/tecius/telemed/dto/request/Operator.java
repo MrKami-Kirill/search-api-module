@@ -36,7 +36,7 @@ public enum Operator {
       Operator::transformValues),
 
   NOT_EQUAL(
-      (field, values) -> "%s != ?".formatted(field),
+      (field, values) -> "%s <> ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
       Operator::transformValues),
 
@@ -110,12 +110,15 @@ public enum Operator {
 
   private final BiFunction<String, List<String>, String> sqlTemplateFunction;
   private final Predicate<List<String>> valuePredicate;
-  private final BiFunction<List<String>, Class<?>, List<String>> nativeTransformValueFunction;
+  private final BiFunction<List<String>, Class<?>, List<String>> transformValueFunction;
 //  private final BiFunction<List<String>, Pair<FieldType, CriteriaBuilder>, Object>
 //      criteriaTransformFunction;
 
+  public boolean validate(List<String> values) {
+    return valuePredicate.test(values);
+  }
+
   public String buildNativeCondition(String dbField, List<String> values) {
-    valuePredicate.test(values);
     return sqlTemplateFunction.apply(dbField, values);
   }
 

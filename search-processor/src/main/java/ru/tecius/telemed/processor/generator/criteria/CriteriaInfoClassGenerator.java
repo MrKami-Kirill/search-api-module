@@ -48,7 +48,7 @@ public class CriteriaInfoClassGenerator {
         .addSuperinterface(criteriaInfoInterface);
 
     addStaticConstants(classBuilder, entityClassName, criteriaConfigs);
-    methodGenerator.addInterfaceMethods(classBuilder, entityClassName);
+    methodGenerator.addInterfaceMethods(classBuilder);
 
     return classBuilder.build();
   }

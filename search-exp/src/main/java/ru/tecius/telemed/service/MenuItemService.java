@@ -118,10 +118,10 @@ public class MenuItemService {
         }
         """, SearchRequestDto.class);
     // Пример 1: JDBC Native SQL
-    var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    //var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
 
     // Пример 2: JPA Native SQL
-    var result2 = nativeEntitySqlService.search(request.searchData(), request.sort(), request.pagination());
+    //var result2 = nativeEntitySqlService.search(request.searchData(), request.sort(), request.pagination());
 
     // Пример 3: Criteria API
     var result3 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination());
