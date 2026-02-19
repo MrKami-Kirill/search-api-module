@@ -1,6 +1,7 @@
 package ru.tecius.telemed.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -9,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.tecius.telemed.dto.request.SearchRequestDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.entity.MenuItemEntity;
@@ -18,9 +20,11 @@ import ru.tecius.telemed.entity.MenuItemEntitySearchInfo;
 public class MenuItemService {
 
   private final NativeSqlService<MenuItemEntity> nativeSqlService;
+  private final EntityManagerSqlService<MenuItemEntity> entityManagerSqlService;
   private final ObjectMapper objectMapper;
 
   public MenuItemService(JdbcTemplate jdbcTemplate,
+      EntityManager entityManager,
       MenuItemEntitySearchInfo menuItemEntitySearchInfo,
       ObjectMapper objectMapper) {
     var menuItemRowMapper = new RowMapper<MenuItemEntity>() {
@@ -41,9 +45,17 @@ public class MenuItemService {
     this.nativeSqlService = new NativeSqlService<>(jdbcTemplate,
         menuItemRowMapper,
         menuItemEntitySearchInfo);
+    // Примечание: EntityGraph не поддерживается для нативных SQL запросов в Hibernate
+    // Для подгрузки связанных сущностей используйте JPQL или добавьте JOIN'ы в конфигурацию
+    this.entityManagerSqlService = new EntityManagerSqlService<>(
+        MenuItemEntity.class,
+        entityManager,
+        menuItemEntitySearchInfo
+    );
     this.objectMapper = objectMapper;
   }
 
+  @Transactional
   @SneakyThrows
   public SearchResponseDto<MenuItemEntity> search() {
     var request = objectMapper.readValue("""
@@ -80,13 +92,15 @@ public class MenuItemService {
             {
               "attribute": "createDate",
               "value": [
-                "2026-02-12T09:00:00+03:00"
+                "2026-03-12T09:00:00+03:00"
               ],
               "operator": "MORE_OR_EQUAL"
             }
           ]
         }
         """, SearchRequestDto.class);
-    return nativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    var result1 =  nativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    var result2 = entityManagerSqlService.search(request.searchData(), request.sort(), request.pagination());
+    return result2;
   }
 }
