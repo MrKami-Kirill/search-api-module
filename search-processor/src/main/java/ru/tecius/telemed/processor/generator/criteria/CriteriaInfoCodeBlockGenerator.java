@@ -49,7 +49,6 @@ public class CriteriaInfoCodeBlockGenerator {
           var join = joins.get(j);
           builder.add("      new $T(\n", CriteriaJoinInfo.class);
           builder.add("        $S,\n", join.path());
-          builder.add("        $S,\n", join.alias());
           builder.add("        $T.$L\n", JoinType.class, join.type());
           builder.add(j < joins.size() - 1 ? "      ),\n" : "      )\n");
         }
@@ -90,7 +89,6 @@ public class CriteriaInfoCodeBlockGenerator {
       var join = joinsList.get(i);
       builder.add("  new $T(\n", CriteriaJoinInfo.class);
       builder.add("    $S,\n", join.path());
-      builder.add("    $S,\n", join.alias());
       builder.add("    $T.$L\n", JoinType.class, join.type());
       builder.add(i < joinsList.size() - 1 ? "  ),\n" : "  )\n");
     }

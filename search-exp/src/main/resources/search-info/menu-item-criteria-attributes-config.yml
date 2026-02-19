@@ -39,7 +39,6 @@ attributes:
     fieldType: java.lang.Long
     joinInfo:
       - path: document        # Имя поля в MenuItemEntity
-        alias: doc            # Уникальный alias для этого join'а
         type: LEFT
 
   - jsonField: documentAllowComments
@@ -47,7 +46,6 @@ attributes:
     fieldType: java.lang.Boolean
     joinInfo:
       - path: document
-        alias: doc
         type: LEFT
 
   - jsonField: documentVersion
@@ -55,7 +53,6 @@ attributes:
     fieldType: java.lang.Integer
     joinInfo:
       - path: document
-        alias: doc
         type: LEFT
 
   - jsonField: documentState
@@ -63,7 +60,6 @@ attributes:
     fieldType: java.lang.String
     joinInfo:
       - path: document
-        alias: doc
         type: LEFT
 
   # === @ManyToOne связи ===
@@ -73,7 +69,6 @@ attributes:
     fieldType: java.lang.String
     joinInfo:
       - path: creator         # Имя поля в MenuItemEntity
-        alias: cr             # Уникальный alias
         type: LEFT
 
   # MenuItemEntity -> UserEntity (поле "lastModifier")
@@ -82,7 +77,6 @@ attributes:
     fieldType: java.lang.String
     joinInfo:
       - path: lastModifier
-        alias: lm
         type: LEFT
 
   # MenuItemEntity -> MenuItemEntity (поле "parent")
@@ -91,7 +85,6 @@ attributes:
     fieldType: java.lang.String
     joinInfo:
       - path: parent
-        alias: par
         type: LEFT
 
   # === @OneToMany связи (коллекции) ===
@@ -105,10 +98,8 @@ attributes:
     fieldType: java.lang.String
     joinInfo:
       - path: document                     # Шаг 1: join @OneToOne поле
-        alias: doc_att1                    # Уникальный alias для этого атрибута
         type: LEFT
       - path: attachments                  # Шаг 2: join @OneToMany коллекцию
-        alias: att_att1                    # Уникальный alias для коллекции
         type: LEFT
 
   - jsonField: attachmentExtension
@@ -116,10 +107,8 @@ attributes:
     fieldType: java.lang.String
     joinInfo:
       - path: document
-        alias: doc_att2                    # Разные alias для разных атрибутов!
         type: LEFT
       - path: attachments
-        alias: att_att2
         type: LEFT
 
   # === ПРИМЕЧАНИЯ ===
@@ -140,10 +129,6 @@ attributes:
   #      - {path: document, alias: d, type: LEFT}
   #      - {path: attachments, alias: a, type: LEFT}
   #
-  # 4. Уникальность alias:
-  #    Каждый атрибут должен иметь уникальные alias'ы в joinInfo,
-  #    даже если joins ведут к тем же полям!
-  #
-  # 5. DISTINCT:
+  # 4. DISTINCT:
   #    При поиске по коллекциям автоматически используется DISTINCT
   #    для предотвращения дубликатов результатов.

@@ -11,10 +11,6 @@ import jakarta.validation.constraints.NotNull;
 public record CriteriaJoinInfo(
     @NotBlank(message = "Поле attribute.joinInfo.path не может быть пустым")
     String path,
-
-    @NotBlank(message = "Поле attribute.joinInfo.alias не может быть пустым")
-    String alias,
-
     @NotNull(message = "Поле attribute.joinInfo.type не может быть null")
     JoinType type
 ) {
