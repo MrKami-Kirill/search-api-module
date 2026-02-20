@@ -3,6 +3,7 @@ package ru.tecius.telemed.processor.generator.nativ;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
+import static ru.tecius.telemed.processor.util.ProcessorStaticUtils.getTableAlias;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -47,7 +48,7 @@ public class NativeInfoClassGenerator {
   }
 
   private String getClassName(TypeElement typeElement) {
-    return typeElement.getSimpleName() + "SearchInfo";
+    return typeElement.getSimpleName() + "NativeSearchInfo";
   }
 
   private void addStaticConstants(
@@ -58,7 +59,8 @@ public class NativeInfoClassGenerator {
 
     classBuilder.addField(createStaticStringField("SCHEMA_NAME", annotation.schema()));
     classBuilder.addField(createStaticStringField("TABLE_NAME", annotation.table()));
-    classBuilder.addField(createStaticStringField("TABLE_ALIAS", annotation.alias()));
+    classBuilder.addField(createStaticStringField("TABLE_ALIAS",
+        getTableAlias(annotation.table(), annotation.alias())));
 
     classBuilder.addField(FieldSpec.builder(
             ParameterizedTypeName.get(Set.class, NativeSearchAttribute.class),

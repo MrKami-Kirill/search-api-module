@@ -17,11 +17,11 @@ public interface SearchInfoInterface<E> {
 
   Set<NativeSearchAttribute> getSimpleAttributes();
 
-  Optional<NativeSearchAttribute> getSimpleAttributeByJsonField(String jsonField);
+  Optional<NativeSearchAttribute> getSimpleAttributeByJsonKey(String key);
 
   Set<NativeSearchAttribute> getMultipleAttributes();
 
-  Optional<NativeSearchAttribute> getMultipleAttributeByJsonField(String jsonField);
+  Optional<NativeSearchAttribute> getMultipleAttributeByJsonKey(String key);
 
   String createJoinString(JoinInfo joinInfo);
 

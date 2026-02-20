@@ -1,112 +1,120 @@
 attributes:
-  - attributeType: SIMPLE
-    jsonField: id
-    dbField: id
-    fieldType: java.lang.Long
+  - type: SIMPLE
+    json:
+      key: id
+    db:
+      column: id
+      type: java.lang.Long
 
-  - attributeType: SIMPLE
-    jsonField: title
-    dbField: title
-    fieldType: java.lang.String
+  - type: SIMPLE
+    json:
+      key: title
+    db:
+      column: title
+      type: java.lang.String
 
-  - attributeType: SIMPLE
-    jsonField: path
-    dbField: path
-    fieldType: java.lang.String
+  - type: SIMPLE
+    json:
+      key: path
+    db:
+      column: path
+      type: java.lang.String
 
-  - attributeType: SIMPLE
-    jsonField: isActive
-    dbField: is_active
-    fieldType: java.lang.Boolean
+  - type: SIMPLE
+    json:
+      key: isActive
+    db:
+      column: is_active
+      type: java.lang.Boolean
 
-  - attributeType: SIMPLE
-    jsonField: inheritParentPermissions
-    dbField: inherit_parent_permissions
-    fieldType: java.lang.Boolean
+  - type: SIMPLE
+    json:
+      key: inheritParentPermissions
+    db:
+      column: inherit_parent_permissions
+      type: java.lang.Boolean
 
-  - attributeType: SIMPLE
-    jsonField: availableEveryone
-    dbField: available_everyone
-    fieldType: java.lang.Boolean
+  - type: SIMPLE
+    json:
+      key: availableEveryone
+    db:
+      column: available_everyone
+      type: java.lang.Boolean
 
-  - attributeType: SIMPLE
-    jsonField: createDate
-    dbField: create_date
-    fieldType: java.time.OffsetDateTime
+  - type: SIMPLE
+    json:
+      key: createDate
+    db:
+      column: create_date
+      type: java.time.OffsetDateTime
 
-  - attributeType: SIMPLE
-    jsonField: lastUpdateDate
-    dbField: last_update_date
-    fieldType: java.time.OffsetDateTime
+  - type: SIMPLE
+    json:
+      key: lastUpdateDate
+    db:
+      column: last_update_date
+      type: java.time.OffsetDateTime
 
-  - attributeType: MULTIPLE
-    jsonField: attachmentFileName
-    dbField: file_name
-    dbTableAlias: da
-    fieldType: java.lang.String
+  - type: MULTIPLE
+    json:
+      key: attachmentFileName
+    db:
+      column: file_name
+      type: java.lang.String
+      joinInfo:
+        - order: 1
+          reference:
+            table: menu_item
+            column: id
+          join:
+            table: documents
+            column: menu_item_id
+          type: LEFT_JOIN
+        - order: 2
+          reference:
+            table: documents
+            column: id
+          join:
+            table: document_attachments
+            column: document_id
+          type: LEFT_JOIN
 
-    joinInfo:
-      - order: 1
-        reference:
-          table: menu_item
-          alias: mi
-          column: id
-        join:
-          table: documents
-          alias: d
-          column: menu_item_id
-        type: LEFT_JOIN
-      - order: 2
-        reference:
-          table: documents
-          alias: d
-          column: id
-        join:
-          table: document_attachments
-          alias: da
-          column: document_id
-        type: LEFT_JOIN
+  - type: MULTIPLE
+    json:
+      key: attachmentExtension
+    db:
+      column: extension
+      type: java.lang.String
+      joinInfo:
+        - order: 1
+          reference:
+            table: menu_item
+            column: id
+          join:
+            table: documents
+            column: menu_item_id
+          type: LEFT_JOIN
+        - order: 2
+          reference:
+            table: documents
+            column: id
+          join:
+            table: document_attachments
+            column: document_id
+          type: LEFT_JOIN
 
-  - attributeType: MULTIPLE
-    jsonField: attachmentExtension
-    dbField: extension
-    dbTableAlias: da
-    fieldType: java.lang.String
-    joinInfo:
-      - order: 1
-        reference:
-          table: menu_item
-          alias: mi
-          column: id
-        join:
-          table: documents
-          alias: d
-          column: menu_item_id
-        type: LEFT_JOIN
-      - order: 2
-        reference:
-          table: documents
-          alias: d
-          column: id
-        join:
-          table: document_attachments
-          alias: da
-          column: document_id
-        type: LEFT_JOIN
-
-  - attributeType: MULTIPLE
-    jsonField: documentId
-    dbField: id
-    dbTableAlias: d
-    fieldType: java.lang.Long
-    joinInfo:
-      - order: 1
-        reference:
-          table: menu_item
-          alias: mi
-          column: id
-        join:
-          table: documents
-          alias: d
-          column: menu_item_id
-        type: LEFT_JOIN
+  - type: MULTIPLE
+    json:
+      key: documentId
+    db:
+      column: id
+      type: java.lang.String
+      joinInfo:
+        - order: 1
+          reference:
+            table: menu_item
+            column: id
+          join:
+            table: documents
+            column: menu_item_id
+          type: LEFT_JOIN

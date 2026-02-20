@@ -42,7 +42,7 @@ public class CriteriaInfoClassGenerator {
   }
 
   private String getClassName(TypeElement typeElement) {
-    return typeElement.getSimpleName() + "CriteriaInfo";
+    return typeElement.getSimpleName() + "CriteriaSearchInfo";
   }
 
   private void addStaticConstants(

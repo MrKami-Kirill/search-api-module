@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import lombok.SneakyThrows;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -14,24 +15,25 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.tecius.telemed.dto.request.SearchRequestDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.entity.MenuItemEntity;
-import ru.tecius.telemed.entity.MenuItemEntityCriteriaInfo;
-import ru.tecius.telemed.entity.MenuItemEntitySearchInfo;
+import ru.tecius.telemed.entity.MenuItemEntityCriteriaSearchInfo;
+import ru.tecius.telemed.entity.MenuItemEntityNativeSearchInfo;
 import ru.tecius.telemed.service.criteria.CriteriaEntityService;
 import ru.tecius.telemed.service.nativ.JdbcNativeSqlService;
-import ru.tecius.telemed.service.nativ.NativeEntitySqlService;
+import ru.tecius.telemed.service.nativ.JpaNativeSqlService;
 
 @Service
 public class MenuItemService {
 
   private final JdbcNativeSqlService<MenuItemEntity> jdbcNativeSqlService;
-  private final NativeEntitySqlService<MenuItemEntity> nativeEntitySqlService;
+  private final JpaNativeSqlService<MenuItemEntity> jpaNativeSqlService;
   private final CriteriaEntityService<MenuItemEntity> criteriaEntityService;
   private final ObjectMapper objectMapper;
 
+  @Autowired
   public MenuItemService(JdbcTemplate jdbcTemplate,
       EntityManager entityManager,
-      MenuItemEntitySearchInfo menuItemEntitySearchInfo,
-      MenuItemEntityCriteriaInfo menuItemEntityCriteriaInfo,
+      MenuItemEntityNativeSearchInfo menuItemEntityNativeSearchInfo,
+      MenuItemEntityCriteriaSearchInfo menuItemEntityCriteriaSearchInfo,
       ObjectMapper objectMapper) {
     var menuItemRowMapper = new RowMapper<MenuItemEntity>() {
       @Override
@@ -50,18 +52,17 @@ public class MenuItemService {
     };
     this.jdbcNativeSqlService = new JdbcNativeSqlService<>(jdbcTemplate,
         menuItemRowMapper,
-        menuItemEntitySearchInfo);
-    // Примечание: EntityGraph не поддерживается для нативных SQL запросов в Hibernate
-    // Для подгрузки связанных сущностей используйте JPQL или добавьте JOIN'ы в конфигурацию
-    this.nativeEntitySqlService = new NativeEntitySqlService<>(
+        menuItemEntityNativeSearchInfo);
+
+    this.jpaNativeSqlService = new JpaNativeSqlService<>(
         MenuItemEntity.class,
         entityManager,
-        menuItemEntitySearchInfo
+        menuItemEntityNativeSearchInfo
     );
-    // Criteria API сервис с поддержкой Entity Graph
+
     this.criteriaEntityService = new CriteriaEntityService<>(
         entityManager,
-        menuItemEntityCriteriaInfo
+        menuItemEntityCriteriaSearchInfo
     );
     this.objectMapper = objectMapper;
   }
@@ -101,6 +102,14 @@ public class MenuItemService {
               "operator": "NOT_BEGIN"
             },
             {
+              "attribute": "documentId",
+              "value": [
+                "46",
+                "69"
+              ],
+              "operator": "BETWEEN"
+            },
+            {
               "attribute": "attachmentExtension",
               "value": [
                 "img"
@@ -118,10 +127,10 @@ public class MenuItemService {
         }
         """, SearchRequestDto.class);
     // Пример 1: JDBC Native SQL
-    //var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
 
     // Пример 2: JPA Native SQL
-    //var result2 = nativeEntitySqlService.search(request.searchData(), request.sort(), request.pagination());
+    var result2 = jpaNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
 
     // Пример 3: Criteria API
     var result3 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination());

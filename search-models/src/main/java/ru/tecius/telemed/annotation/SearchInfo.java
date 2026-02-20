@@ -14,7 +14,7 @@ public @interface SearchInfo {
 
   String table();
 
-  String alias();
+  String alias() default "";
 
   String[] nativeAttributePaths() default {};
 

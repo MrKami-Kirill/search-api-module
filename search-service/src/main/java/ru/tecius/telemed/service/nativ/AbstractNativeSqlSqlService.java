@@ -102,7 +102,7 @@ public abstract class AbstractNativeSqlSqlService<E> {
   private void addPagination(StringBuilder sqlBuilder, LinkedList<Object> params,
       PaginationDto pagination, Integer limit) {
     if (nonNull(pagination)) {
-      var offset = nonNull(pagination.page()) ? pagination.page() * pagination.size() : 0;
+      var offset = nonNull(pagination.page()) ? pagination.page() * limit : 0;
       sqlBuilder.append("LIMIT ? OFFSET ?");
       params.add(limit);
       params.add(offset);
@@ -134,15 +134,15 @@ public abstract class AbstractNativeSqlSqlService<E> {
       LinkedList<SortDto> sort) {
     var joins = new LinkedHashSet<JoinInfo>();
     if (nonNull(searchData)) {
-      searchData.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonField(
+      searchData.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonKey(
               dto.attribute())
-          .ifPresent(attr -> joins.addAll(attr.joinInfo())));
+          .ifPresent(attr -> joins.addAll(attr.db().joinInfo())));
     }
 
     if (isNotEmpty(sort)) {
-      sort.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonField(
+      sort.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonKey(
               dto.attribute())
-          .ifPresent(attr -> joins.addAll(attr.joinInfo())));
+          .ifPresent(attr -> joins.addAll(attr.db().joinInfo())));
     }
 
     return joins;
@@ -152,20 +152,18 @@ public abstract class AbstractNativeSqlSqlService<E> {
     var attribute = searchData.attribute();
     var operator = searchData.operator();
     var values = searchData.value();
-    var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
-    if (simpleAttr.isPresent()) {
-      var attr = simpleAttr.get();
-      var fullDbFieldName = searchInfoInterface.getTableAlias() + "." + attr.dbField();
-      return buildSimpleCondition(fullDbFieldName, operator, values, params, attr.fieldType());
-    }
-
-    return searchInfoInterface.getMultipleAttributeByJsonField(attribute)
-        .map(multipleSearchAttribute -> buildSimpleCondition(
-            multipleSearchAttribute.getFullDbFieldName(), operator, values, params,
-            multipleSearchAttribute.fieldType()))
-        .orElseThrow(() -> new ValidationException(
-            "Фильтрация по атрибуту %s запрещена".formatted(attribute)));
-
+    return searchInfoInterface.getSimpleAttributeByJsonKey(attribute)
+        .map(simpleAttr -> buildSimpleCondition(
+            "%s.%s".formatted(searchInfoInterface.getTableAlias(), simpleAttr.db().column()),
+            operator, values, params, simpleAttr.db().type()))
+        .orElseGet(() -> searchInfoInterface.getMultipleAttributeByJsonKey(attribute)
+            .map(multipleAttr -> buildSimpleCondition(
+                "%s.%s".formatted(multipleAttr.db().joinInfo().getLast().join().alias(),
+                    multipleAttr.db().column()),
+                operator, values, params,
+                multipleAttr.db().type()))
+            .orElseThrow(() -> new ValidationException(
+                "Фильтрация по атрибуту %s запрещена".formatted(attribute))));
   }
 
   private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
@@ -195,15 +193,17 @@ public abstract class AbstractNativeSqlSqlService<E> {
 
   private String buildSingleOrderByClause(SortDto sort) {
     var attribute = sort.attribute();
-    var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonField(attribute);
+    var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonKey(attribute);
     if (simpleAttr.isPresent()) {
       return "%s %s".formatted(
-          searchInfoInterface.getTableAlias() + "." + simpleAttr.get().dbField(),
+          searchInfoInterface.getTableAlias() + "." + simpleAttr.get().db().column(),
           sort.direction());
     }
 
-    var multipleAttr = searchInfoInterface.getMultipleAttributeByJsonField(attribute);
-    return multipleAttr.map(attr -> "%s %s".formatted(attr.getFullDbFieldName(), sort.direction()))
+    var multipleAttr = searchInfoInterface.getMultipleAttributeByJsonKey(attribute);
+    return multipleAttr.map(attr -> "%s %s".formatted(
+            "%s.%s".formatted(searchInfoInterface.getTableAlias(), attr.db().column()),
+            sort.direction()))
         .orElseThrow(() -> new ValidationException(
             "Сортировка по атрибуту %s запрещена".formatted(attribute)));
   }

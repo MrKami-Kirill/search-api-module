@@ -4,7 +4,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record CriteriaJoinInfo(
+public record JoinInfo(
     @NotBlank(message = "Поле attribute.joinInfo.path не может быть пустым")
     String path,
 

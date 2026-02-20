@@ -20,7 +20,7 @@ public class NativeInfoMethodGenerator {
     addGetSimpleAttributesMethod(classBuilder);
     addGetSimpleAttributeByJsonFieldMethod(classBuilder);
     addGetMultipleAttributesMethod(classBuilder);
-    addGetMultipleAttributeByJsonFieldMethod(classBuilder);
+    addGetMultipleAttributeByJsonKeyMethod(classBuilder);
     addCreateJoinStringMethod(classBuilder);
   }
 
@@ -71,14 +71,14 @@ public class NativeInfoMethodGenerator {
   }
 
   private void addGetSimpleAttributeByJsonFieldMethod(TypeSpec.Builder classBuilder) {
-    classBuilder.addMethod(MethodSpec.methodBuilder("getSimpleAttributeByJsonField")
+    classBuilder.addMethod(MethodSpec.methodBuilder("getSimpleAttributeByJsonKey")
         .addParameter(String.class, "jsonField")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
         .returns(ParameterizedTypeName.get(Optional.class, NativeSearchAttribute.class))
         .addStatement("""
             return SIMPLE_ATTRIBUTES.stream()
-                    .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
+                    .filter(attr -> java.util.Objects.equals(attr.json().key(), jsonField))
                     .findAny()""")
         .build());
   }
@@ -92,15 +92,15 @@ public class NativeInfoMethodGenerator {
         .build());
   }
 
-  private void addGetMultipleAttributeByJsonFieldMethod(TypeSpec.Builder classBuilder) {
-    classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributeByJsonField")
-        .addParameter(String.class, "jsonField")
+  private void addGetMultipleAttributeByJsonKeyMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributeByJsonKey")
+        .addParameter(String.class, "key")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
         .returns(ParameterizedTypeName.get(Optional.class, NativeSearchAttribute.class))
         .addStatement("""
             return MULTIPLE_ATTRIBUTES.stream()
-                    .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
+                    .filter(attr -> java.util.Objects.equals(attr.json().key(), key))
                     .findAny()""")
         .build());
   }

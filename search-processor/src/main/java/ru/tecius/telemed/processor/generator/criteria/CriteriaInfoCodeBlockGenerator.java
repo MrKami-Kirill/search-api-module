@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import ru.tecius.telemed.configuration.criteria.CriteriaJoinInfo;
+import ru.tecius.telemed.configuration.criteria.JoinInfo;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 import ru.tecius.telemed.configuration.nativ.AttributeType;
 import ru.tecius.telemed.configuration.nativ.CriteriaSearchAttributeConfig;
@@ -40,11 +40,11 @@ public class CriteriaInfoCodeBlockGenerator {
 
       var joinInfo = attr.joinInfo();
       if (isNotEmpty(joinInfo)) {
-        builder.add("\tnew $T<$T>($T.asList(\n", LinkedHashSet.class, CriteriaJoinInfo.class, Arrays.class);
-        var joins = new ArrayList<>(attr.joinInfo());
+        builder.add("\tnew $T<$T>($T.asList(\n", LinkedHashSet.class, JoinInfo.class, Arrays.class);
+        var joins = new ArrayList<>(joinInfo);
         for (int j = 0; j < joins.size(); j++) {
           var join = joins.get(j);
-          builder.add("\tnew $T(\n", CriteriaJoinInfo.class);
+          builder.add("\tnew $T(\n", JoinInfo.class);
           builder.add("\t$S,\n", join.path());
           builder.add("\t$T.$L\n", JoinType.class, join.type());
           builder.add(j < joins.size() - 1 ? "),\n" : ")\n");

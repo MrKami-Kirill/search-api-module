@@ -33,4 +33,5 @@ public class JdbcNativeSqlService<E> extends AbstractNativeSqlSqlService<E> {
         (sql, params) -> jdbcTemplate.query(sql,
             rowMapper, params.toArray()));
   }
+
 }

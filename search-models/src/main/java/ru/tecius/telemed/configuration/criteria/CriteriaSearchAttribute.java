@@ -25,7 +25,7 @@ public record CriteriaSearchAttribute(
     @NotNull(message = "Поле attribute.fieldType не может быть null")
     Class<?> fieldType,
     @Valid
-    LinkedHashSet<CriteriaJoinInfo> joinInfo
+    LinkedHashSet<JoinInfo> joinInfo
 ) {
 
   @AssertTrue(message = "Поле attributes.joinInfo не может быть null или пустым, "
