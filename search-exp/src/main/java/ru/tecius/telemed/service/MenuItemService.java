@@ -32,7 +32,6 @@ public class MenuItemService {
   @Autowired
   public MenuItemService(JdbcTemplate jdbcTemplate,
       EntityManager entityManager,
-      MenuItemEntityNativeSearchInfo menuItemEntityNativeSearchInfo,
       MenuItemEntityCriteriaSearchInfo menuItemEntityCriteriaSearchInfo,
       ObjectMapper objectMapper) {
     var menuItemRowMapper = new RowMapper<MenuItemEntity>() {
@@ -50,6 +49,7 @@ public class MenuItemService {
             .build();
       }
     };
+    var menuItemEntityNativeSearchInfo = new MenuItemEntityNativeSearchInfo();
     this.jdbcNativeSqlService = new JdbcNativeSqlService<>(jdbcTemplate,
         menuItemRowMapper,
         menuItemEntityNativeSearchInfo);
@@ -82,7 +82,7 @@ public class MenuItemService {
               "direction": "DESC"
             },
             {
-              "attribute": "title",
+              "attribute": "attachmentFileName",
               "direction": "ASC"
             }
           ],

@@ -83,7 +83,8 @@ public abstract class AbstractNativeSqlSqlService<E> {
 
     if (isNotEmpty(whereConditions)) {
       sqlBuilder.append("WHERE ")
-          .append(join("\nAND ", whereConditions))
+          .append(LF)
+          .append(join("AND ", whereConditions))
           .append(LF);
     }
 
@@ -154,12 +155,11 @@ public abstract class AbstractNativeSqlSqlService<E> {
     var values = searchData.value();
     return searchInfoInterface.getSimpleAttributeByJsonKey(attribute)
         .map(simpleAttr -> buildSimpleCondition(
-            "%s.%s".formatted(searchInfoInterface.getTableAlias(), simpleAttr.db().column()),
+            searchInfoInterface.getFullColumnNameByAttribute(simpleAttr),
             operator, values, params, simpleAttr.db().type()))
         .orElseGet(() -> searchInfoInterface.getMultipleAttributeByJsonKey(attribute)
             .map(multipleAttr -> buildSimpleCondition(
-                "%s.%s".formatted(multipleAttr.db().joinInfo().getLast().join().alias(),
-                    multipleAttr.db().column()),
+                searchInfoInterface.getFullColumnNameByAttribute(multipleAttr),
                 operator, values, params,
                 multipleAttr.db().type()))
             .orElseThrow(() -> new ValidationException(
@@ -193,19 +193,16 @@ public abstract class AbstractNativeSqlSqlService<E> {
 
   private String buildSingleOrderByClause(SortDto sort) {
     var attribute = sort.attribute();
-    var simpleAttr = searchInfoInterface.getSimpleAttributeByJsonKey(attribute);
-    if (simpleAttr.isPresent()) {
-      return "%s %s".formatted(
-          searchInfoInterface.getTableAlias() + "." + simpleAttr.get().db().column(),
-          sort.direction());
-    }
-
-    var multipleAttr = searchInfoInterface.getMultipleAttributeByJsonKey(attribute);
-    return multipleAttr.map(attr -> "%s %s".formatted(
-            "%s.%s".formatted(searchInfoInterface.getTableAlias(), attr.db().column()),
+    return searchInfoInterface.getSimpleAttributeByJsonKey(attribute)
+        .map(attr -> "%s %s".formatted(
+            searchInfoInterface.getFullColumnNameByAttribute(attr),
             sort.direction()))
-        .orElseThrow(() -> new ValidationException(
-            "Сортировка по атрибуту %s запрещена".formatted(attribute)));
+        .orElseGet(() -> searchInfoInterface.getMultipleAttributeByJsonKey(attribute)
+            .map(attr -> "%s %s".formatted(
+                searchInfoInterface.getFullColumnNameByAttribute(attr),
+                sort.direction()))
+            .orElseThrow(() -> new ValidationException(
+                "Сортировка по атрибуту %s запрещена".formatted(attribute))));
   }
 
   private String extractFromWithJoinsAndWhere(String sql) {

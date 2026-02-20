@@ -22,6 +22,7 @@ public class NativeInfoMethodGenerator {
     addGetMultipleAttributesMethod(classBuilder);
     addGetMultipleAttributeByJsonKeyMethod(classBuilder);
     addCreateJoinStringMethod(classBuilder);
+    addGetFullColumnNameByAttributeMethod(classBuilder);
   }
 
   private void addGetSchemaNameMethod(TypeSpec.Builder classBuilder) {
@@ -117,6 +118,23 @@ public class NativeInfoMethodGenerator {
                     joinInfo.join().table(), joinInfo.join().alias(),
                     joinInfo.reference().alias(), joinInfo.reference().column(),
                     joinInfo.join().alias(), joinInfo.join().column())""")
+        .build());
+  }
+
+  private void addGetFullColumnNameByAttributeMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getFullColumnNameByAttribute")
+        .addParameter(NativeSearchAttribute.class, "attribute")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(String.class)
+        .addStatement("""
+            return switch (attribute.type()) {
+              case SIMPLE -> FULL_DB_COLUMN_NAME_TEMPLATE
+                  .formatted(getTableAlias(), attribute.db().column());
+              case MULTIPLE -> FULL_DB_COLUMN_NAME_TEMPLATE
+                  .formatted(attribute.db().joinInfo().getLast().join().alias(),
+                      attribute.db().column());
+            }""")
         .build());
   }
 

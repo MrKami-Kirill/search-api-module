@@ -25,4 +25,5 @@ public interface SearchInfoInterface<E> {
 
   String createJoinString(JoinInfo joinInfo);
 
+  String getFullColumnNameByAttribute(NativeSearchAttribute attribute);
 }

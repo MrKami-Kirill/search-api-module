@@ -38,7 +38,6 @@ public class NativeInfoClassGenerator {
 
     var classBuilder = TypeSpec.classBuilder(getClassName(typeElement))
         .addModifiers(Modifier.PUBLIC)
-        .addAnnotation(org.springframework.stereotype.Component.class)
         .addSuperinterface(searchInfoInterface);
 
     addStaticConstants(classBuilder, annotation, configs);
@@ -57,6 +56,7 @@ public class NativeInfoClassGenerator {
       List<NativeSearchAttributeConfig> configs
   ) {
 
+    classBuilder.addField(createStaticStringField("FULL_DB_COLUMN_NAME_TEMPLATE", "%s.%s"));
     classBuilder.addField(createStaticStringField("SCHEMA_NAME", annotation.schema()));
     classBuilder.addField(createStaticStringField("TABLE_NAME", annotation.table()));
     classBuilder.addField(createStaticStringField("TABLE_ALIAS",
