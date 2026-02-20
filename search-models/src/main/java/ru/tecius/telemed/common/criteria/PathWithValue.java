@@ -1,4 +1,4 @@
-package ru.tecius.telemed.dto.request;
+package ru.tecius.telemed.common.criteria;
 
 import jakarta.persistence.criteria.Path;
 import java.util.List;

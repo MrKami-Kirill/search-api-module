@@ -21,6 +21,10 @@ public class JoinContext {
     processedPaths.add(path);
   }
 
+  public boolean hasJoin(String path) {
+    return processedPaths.contains(path);
+  }
+
   public void markAsCollectionJoin(String path) {
     collectionJoins.add(path);
   }
@@ -29,16 +33,6 @@ public class JoinContext {
     return !collectionJoins.isEmpty();
   }
 
-  public Set<String> collectionJoins() {
-    return collectionJoins;
-  }
 
-  public boolean hasJoin(String path) {
-    return processedPaths.contains(path);
-  }
-
-  public boolean hasJoinInJoins(String path) {
-    return joins.containsKey(path);
-  }
 
 }

@@ -26,14 +26,15 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
+import ru.tecius.telemed.common.criteria.PathWithValue;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 import ru.tecius.telemed.configuration.criteria.JoinInfo;
 import ru.tecius.telemed.criteria.context.JoinContext;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
-import ru.tecius.telemed.dto.request.PathWithValue;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
+import ru.tecius.telemed.exception.ValidationException;
 
 public abstract class AbstractCriteriaSqlService<E> {
 
@@ -126,18 +127,26 @@ public abstract class AbstractCriteriaSqlService<E> {
         && (pagination.page() + 1) < totalPages;
   }
 
-  private void addFetchJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
+  private void addFetchJoinsForSort(Root<E> root, LinkedList<SortDto> sort,
+      JoinContext joinContext) {
     if (isNotEmpty(sort)) {
       sort.forEach(dto -> criteriaInfoInterface.getMultipleAttributeByJsonKey(dto.attribute())
           .ifPresent(attr -> addFetchFromAttribute(root, attr, joinContext))); //
     }
   }
 
-  private void addFetchFromAttribute(Root<E> root, CriteriaSearchAttribute attr, JoinContext joinContext) {
+  private void addFetchFromAttribute(Root<E> root, CriteriaSearchAttribute attr,
+      JoinContext joinContext) {
     FetchParent<?, ?> currentFetch = root;
     var currentPath = EMPTY;
 
     for (var joinInfo : attr.db().joinInfo()) {
+      // Проверка, что атрибут не является коллекцией
+      if (isCollectionJoin((From<?, ?>) currentFetch, joinInfo.path())) {
+        throw new ValidationException("Сортировка по атрибуту %s запрещена"
+            .formatted(attr.json().key()));
+      }
+
       currentPath = getCurrentPath(currentPath, joinInfo);
 
       // ВАЖНО: Мы НЕ проверяем joinContext.hasJoin(currentPath).
@@ -148,10 +157,6 @@ public abstract class AbstractCriteriaSqlService<E> {
       if (fetch instanceof Join<?, ?> join) {
         // Обновляем/добавляем в контекст, чтобы buildOrders мог найти этот Path
         joinContext.addJoin(currentPath, join);
-      }
-
-      if (isCollectionJoin((From<?, ?>) currentFetch, joinInfo.path())) {
-        joinContext.markAsCollectionJoin(currentPath);
       }
 
       currentFetch = fetch;
@@ -206,12 +211,8 @@ public abstract class AbstractCriteriaSqlService<E> {
       return attribute.isCollection();
   }
 
-  private List<Predicate> buildPredicates(
-      CriteriaBuilder cb,
-      Root<E> root,
-      List<SearchDataDto> searchData,
-      JoinContext joinContext
-  ) {
+  private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<E> root,
+      List<SearchDataDto> searchData, JoinContext joinContext) {
     var predicates = new ArrayList<Predicate>();
 
     if (isNotEmpty(searchData)) {
@@ -226,12 +227,8 @@ public abstract class AbstractCriteriaSqlService<E> {
     return predicates;
   }
 
-  private Predicate buildPredicate(
-      CriteriaBuilder cb,
-      Root<E> root,
-      SearchDataDto searchData,
-      JoinContext joinContext
-  ) {
+  private Predicate buildPredicate(CriteriaBuilder cb, Root<E> root, SearchDataDto searchData,
+      JoinContext joinContext) {
     var attribute = searchData.attribute();
     var attr = criteriaInfoInterface.getAttributeByJsonKey(attribute,
             "Фильтрация по атрибуту %s запрещена".formatted(searchData.attribute()));
@@ -252,13 +249,8 @@ public abstract class AbstractCriteriaSqlService<E> {
     return joinContext.getJoin(createCurrentPath(db.joinInfo())).get(db.column());
   }
 
-  private Predicate buildPredicateForOperator(
-      CriteriaBuilder cb,
-      Path<?> path,
-      Operator operator,
-      List<String> values,
-      Class<?> fieldType
-  ) {
+  private Predicate buildPredicateForOperator(CriteriaBuilder cb, Path<?> path, Operator operator,
+      List<String> values, Class<?> fieldType) {
     operator.checkValue(values);
 
     var pathWithValue = new PathWithValue(path, values, fieldType);
@@ -271,7 +263,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       LinkedList<SortDto> sort,
       JoinContext joinContext
   ) {
-    var orders = new ArrayList<Order>();
+    var orders = new LinkedList<Order>();
 
     for (var sortDto : sort) {
       var attribute = sortDto.attribute();
