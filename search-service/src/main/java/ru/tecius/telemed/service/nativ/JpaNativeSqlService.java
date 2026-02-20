@@ -9,7 +9,7 @@ import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 
-public class JpaNativeSqlService<E> extends AbstractNativeSqlSqlService<E> {
+public class JpaNativeSqlService<E> extends AbstractNativeSqlService<E> {
 
   private final Class<E> cls;
   private final jakarta.persistence.EntityManager entityManager;

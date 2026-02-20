@@ -23,11 +23,11 @@ import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.exception.ValidationException;
 
-public abstract class AbstractNativeSqlSqlService<E> {
+public abstract class AbstractNativeSqlService<E> {
 
   private final SearchInfoInterface<E> searchInfoInterface;
 
-  protected AbstractNativeSqlSqlService(SearchInfoInterface<E> searchInfoInterface) {
+  protected AbstractNativeSqlService(SearchInfoInterface<E> searchInfoInterface) {
     this.searchInfoInterface = searchInfoInterface;
   }
 
