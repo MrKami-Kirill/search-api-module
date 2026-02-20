@@ -1,118 +1,130 @@
 package ru.tecius.telemed.dto.request;
 
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.nCopies;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.hibernate.internal.util.StringHelper.join;
-import static util.Constants.BIRTHDAY_DATE_FORMAT;
-import static util.Constants.ISO_DATE_FORMAT;
-import static util.Constants.LOCAL_DATE_TIME_FORMAT;
+import static ru.tecius.telemed.util.Constants.DATE_CLASSES;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import ru.tecius.telemed.exception.ValidationException;
+import ru.tecius.telemed.util.criteria.CriteriaValueConverter;
+import ru.tecius.telemed.util.nativ.NativeValueConverter;
 
-@RequiredArgsConstructor
 @Getter
 public enum Operator {
 
   EQUAL(
-      (field, values) -> "%s = ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      Operator::transformValues),
+      (field, values) -> "%s = ?".formatted(field),
+      NativeValueConverter::transformValues,
+      (cb, pv) -> cb.equal(pv.path(),
+          CriteriaValueConverter.convertValue(pv.values().getFirst(), pv.fieldType()))),
 
   NOT_EQUAL(
-      (field, values) -> "%s <> ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      Operator::transformValues),
+      (field, values) -> "%s <> ?".formatted(field),
+      NativeValueConverter::transformValues,
+      (cb, pv) -> cb.notEqual(pv.path(),
+          CriteriaValueConverter.convertValue(pv.values().getFirst(), pv.fieldType()))),
 
   IN(
+      CollectionUtils::isNotEmpty,
       (field, values) -> "%s IN (%s)".formatted(field,
           join(", ", nCopies(values.size(), "?"))),
-      CollectionUtils::isNotEmpty,
-      Operator::transformValues),
+      NativeValueConverter::transformValues,
+      (cb, pv) -> pv.path().in(CriteriaValueConverter.convertValues(pv.values(),
+          pv.fieldType()))),
 
   CONTAIN(
-      (field, values) -> "%s LIKE ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      (values, fieldType) -> List.of("%" + values.getFirst() + "%")),
+      (field, values) -> "%s LIKE ?".formatted(field),
+      (values, fieldType) -> NativeValueConverter.transformValuesForLike(values),
+      (cb, pv) -> cb.like(pv.path().as(String.class), pv.values().getFirst())),
 
   EXCLUDE(
-      (field, values) -> "%s NOT LIKE ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      (values, fieldType) -> List.of("%" + values.getFirst() + "%")),
+      (field, values) -> "%s NOT LIKE ?".formatted(field),
+      (values, fieldType) -> NativeValueConverter.transformValuesForLike(values),
+      (cb, pv) -> cb.notLike(pv.path().as(String.class), pv.values().getFirst())),
 
   BEGIN(
-      (field, values) -> "%s LIKE ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      (values, fieldType) -> List.of(values.getFirst() + "%")),
+      (field, values) -> "%s LIKE ?".formatted(field),
+      (values, fieldType) -> NativeValueConverter.transformValuesForBegin(values),
+      (cb, pv) -> cb.like(pv.path().as(String.class), pv.values().getFirst())),
 
   NOT_BEGIN(
-      (field, values) -> "%s NOT LIKE ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      (values, fieldType) -> List.of(values.getFirst() + "%")),
+      (field, values) -> "%s NOT LIKE ?".formatted(field),
+      (values, fieldType) -> NativeValueConverter.transformValuesForBegin(values),
+      (cb, pv) -> cb.notLike(pv.path().as(String.class), pv.values().getFirst())),
 
   END(
-      (field, values) -> "%s LIKE ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      (values, fieldType) -> List.of("%" + values.getFirst())),
+      (field, values) -> "%s LIKE ?".formatted(field),
+      (values, fieldType) -> NativeValueConverter.transformValuesForEnd(values),
+      (cb, pv) -> cb.like(pv.path().as(String.class), pv.values().getFirst())),
 
   NOT_END(
-      (field, values) -> "%s NOT LIKE ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      (values, fieldType) -> List.of("%" + values.getFirst())),
+      (field, values) -> "%s NOT LIKE ?".formatted(field),
+      (values, fieldType) -> NativeValueConverter.transformValuesForEnd(values),
+      (cb, pv) -> cb.notLike(pv.path().as(String.class), pv.values().getFirst())),
 
   IS_NULL(
-      (field, values) -> "%s IS NULL".formatted(field),
       CollectionUtils::isEmpty,
-      (field, values) -> emptyList()),
+      (field, values) -> "%s IS NULL".formatted(field),
+      (values, fieldType) -> emptyList(),
+      (cb, pv) -> cb.isNull(pv.path())),
 
   IS_NOT_NULL(
-      (field, values) -> "%s IS NOT NULL".formatted(field),
       CollectionUtils::isEmpty,
-      (values, fieldType) -> emptyList()),
+      (field, values) -> "%s IS NOT NULL".formatted(field),
+      (values, fieldType) -> emptyList(),
+      (cb, pv) -> cb.isNotNull(pv.path())),
 
   BETWEEN(
-      (field, values) -> "%s BETWEEN ? AND ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(2, values.size()),
-      Operator::transformValues),
+      (field, values) -> "%s BETWEEN ? AND ?".formatted(field),
+      NativeValueConverter::transformValues,
+      Operator::buildBetweenPredicate),
 
   MORE_OR_EQUAL(
-      (field, values) -> "%s >= ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      Operator::transformValues),
+      (field, values) -> "%s >= ?".formatted(field),
+      NativeValueConverter::transformValues,
+      Operator::buildMoreOrEqualPredicate),
 
   LESS_OR_EQUAL(
-      (field, values) -> "%s <= ?".formatted(field),
       values -> isNotEmpty(values) && Objects.equals(1, values.size()),
-      Operator::transformValues);
+      (field, values) -> "%s <= ?".formatted(field),
+      NativeValueConverter::transformValues,
+      Operator::buildLessOrEqualPredicate);
 
-  private static final String INVALID_VALUE_FORMAT_ERROR_TEMPLATE =
-      "Переданное значение %s не соответствует формату %s";
-  private static final DateTimeFormatter ISO_DATE_TIME_FORMATTER = ofPattern(ISO_DATE_FORMAT);
-  private static final DateTimeFormatter LOCAL_DATE_TIME_FORMATTER =
-      ofPattern(LOCAL_DATE_TIME_FORMAT);
-  private static final DateTimeFormatter BIRTHDAY_DATE_FORMATTER = ofPattern(BIRTHDAY_DATE_FORMAT);
+  private final java.util.function.Predicate<List<String>> valuePredicate;
+  private final BiFunction<String, List<String>, String> nativeSqlTemplateFunction;
+  private final BiFunction<List<String>, Class<?>, List<String>> nativeTransformValueFunction;
+  private final BiFunction<CriteriaBuilder, PathWithValue, Object> criteriaPredicateFunction;
 
-  private final BiFunction<String, List<String>, String> sqlTemplateFunction;
-  private final Predicate<List<String>> valuePredicate;
-  private final BiFunction<List<String>, Class<?>, List<String>> transformValueFunction;
-//  private final BiFunction<List<String>, Pair<FieldType, CriteriaBuilder>, Object>
-//      criteriaTransformFunction;
+  Operator(
+      java.util.function.Predicate<List<String>> valuePredicate,
+      BiFunction<String, List<String>, String> nativeSqlTemplateFunction,
+      BiFunction<List<String>, Class<?>, List<String>> nativeTransformValueFunction,
+      BiFunction<CriteriaBuilder, PathWithValue, Object> criteriaPredicateFunction
+  ) {
+    this.valuePredicate = valuePredicate;
+    this.nativeSqlTemplateFunction = nativeSqlTemplateFunction;
+    this.nativeTransformValueFunction = nativeTransformValueFunction;
+    this.criteriaPredicateFunction = criteriaPredicateFunction;
+  }
 
   public void checkValue(List<String> values) {
     if (!valuePredicate.test(values)) {
@@ -122,50 +134,66 @@ public enum Operator {
   }
 
   public String buildNativeCondition(String dbField, List<String> values) {
-    return sqlTemplateFunction.apply(dbField, values);
+    return nativeSqlTemplateFunction.apply(dbField, values);
   }
 
-  public Object buildCriteriaCondition(List<String> values) {
-    valuePredicate.test(values);
-    return null;
-  }
-
-  public static List<String> transformValues(List<String> values, Class<?> fieldType) {
-    return Stream.of(fieldType)
-        .filter(cls -> List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
-            .contains(cls))
-        .map(cls -> parseDateValues(values, cls))
-        .findAny()
-        .orElse(values);
-  }
-
-  private static List<String> parseDateValues(List<String> values, Class<?> fieldType) {
-    return values.stream()
-        .map(value -> parseSingleDateValue(value, fieldType))
-        .toList();
-  }
-
-  private static String parseSingleDateValue(String value, Class<?> fieldType) {
-    return switch (fieldType) {
-      case Class<?> c when c == OffsetDateTime.class -> parseSingleDateValue(() ->
-              OffsetDateTime.parse(value, ISO_DATE_TIME_FORMATTER).toString(),
-          INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, ISO_DATE_FORMAT));
-      case Class<?> c when c == LocalDateTime.class -> parseSingleDateValue(() ->
-              LocalDateTime.parse(value, LOCAL_DATE_TIME_FORMATTER).format(ISO_LOCAL_DATE_TIME),
-          INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, LOCAL_DATE_TIME_FORMAT));
-      case Class<?> c when c == LocalDate.class -> parseSingleDateValue(() ->
-              LocalDate.parse(value, BIRTHDAY_DATE_FORMATTER).format(ISO_LOCAL_DATE),
-          INVALID_VALUE_FORMAT_ERROR_TEMPLATE.formatted(value, BIRTHDAY_DATE_FORMAT));
-      default -> value;
-    };
-  }
-
-  private static String parseSingleDateValue(Supplier<String> supplier, String errorMessage) {
-    try {
-      return supplier.get();
-    } catch (Exception ex) {
-      throw new ValidationException(errorMessage, ex);
+  @SuppressWarnings("unchecked,rawtypes")
+  private static Predicate buildBetweenPredicate(CriteriaBuilder cb, PathWithValue pv) {
+    if (Objects.equals(pv.fieldType(), String.class)) {
+      return cb.between(pv.path().as(String.class), pv.values().getFirst(), pv.values().getLast());
     }
+
+    if (DATE_CLASSES.contains(pv.fieldType())) {
+      return cb.between(
+          (Path) pv.path(),
+          CriteriaValueConverter.parseDateValue(pv.values().getFirst(), pv.fieldType()),
+          CriteriaValueConverter.parseDateValue(pv.values().getLast(), pv.fieldType())
+      );
+    }
+
+    return cb.between(
+        (Path) pv.path(),
+        (Comparable) CriteriaValueConverter.convertValue(pv.values().getFirst(), pv.fieldType()),
+        (Comparable) CriteriaValueConverter.convertValue(pv.values().getLast(), pv.fieldType())
+    );
+  }
+
+  @SuppressWarnings("unchecked,rawtypes")
+  private static Predicate buildMoreOrEqualPredicate(CriteriaBuilder cb, PathWithValue pv) {
+    if (Objects.equals(pv.fieldType(), String.class)) {
+      return cb.greaterThanOrEqualTo(pv.path().as(String.class), pv.values().getFirst());
+    }
+
+    if (DATE_CLASSES.contains(pv.fieldType())) {
+      return cb.greaterThanOrEqualTo(
+          (Path) pv.path(),
+          CriteriaValueConverter.parseDateValue(pv.values().getFirst(), pv.fieldType())
+      );
+    }
+
+    return cb.greaterThanOrEqualTo(
+        (Path) pv.path(),
+        (Comparable) CriteriaValueConverter.convertValue(pv.values().getFirst(), pv.fieldType())
+    );
+  }
+
+  @SuppressWarnings("unchecked,rawtypes")
+  private static Predicate buildLessOrEqualPredicate(CriteriaBuilder cb, PathWithValue pv) {
+    if (Objects.equals(pv.fieldType(), String.class)) {
+      return cb.lessThanOrEqualTo(pv.path().as(String.class), pv.values().getFirst());
+    }
+
+    if (DATE_CLASSES.contains(pv.fieldType())) {
+      return cb.lessThanOrEqualTo(
+          (Path) pv.path(),
+          CriteriaValueConverter.parseDateValue(pv.values().getFirst(), pv.fieldType())
+      );
+    }
+
+    return cb.lessThanOrEqualTo(
+        (Path) pv.path(),
+        (Comparable) CriteriaValueConverter.convertValue(pv.values().getFirst(), pv.fieldType())
+    );
   }
 
 }

@@ -171,7 +171,7 @@ public abstract class AbstractNativeSqlSqlService<E> {
     operator.checkValue(values);
 
     var condition = operator.buildNativeCondition(dbField, values);
-    params.addAll(operator.getTransformValueFunction().apply(values, fieldType));
+    params.addAll(operator.getNativeTransformValueFunction().apply(values, fieldType));
     return condition;
   }
 

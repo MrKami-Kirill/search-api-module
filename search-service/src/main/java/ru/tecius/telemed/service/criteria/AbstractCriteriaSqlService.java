@@ -1,8 +1,5 @@
 package ru.tecius.telemed.service.criteria;
 
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -21,9 +18,6 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.metamodel.EntityType;
 import jakarta.persistence.metamodel.PluralAttribute;
 import jakarta.persistence.metamodel.SingularAttribute;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -36,6 +30,7 @@ import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
+import ru.tecius.telemed.dto.request.PathWithValue;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.exception.ValidationException;
@@ -305,7 +300,7 @@ public abstract class AbstractCriteriaSqlService<E> {
     return path.get(segments[segments.length - 1]);
   }
 
-  @SuppressWarnings("unchecked,rawtypes")
+  @SuppressWarnings("unchecked")
   private Predicate buildPredicateForOperator(
       CriteriaBuilder cb,
       Path<?> path,
@@ -315,130 +310,8 @@ public abstract class AbstractCriteriaSqlService<E> {
   ) {
     operator.checkValue(values);
 
-    var transformedValues = operator.getTransformValueFunction().apply(values, fieldType);
-
-    return switch (operator) {
-      case EQUAL ->
-          cb.equal(path, convertValueForCriteria(transformedValues.getFirst(), fieldType));
-      case NOT_EQUAL ->
-          cb.notEqual(path, convertValueForCriteria(transformedValues.getFirst(), fieldType));
-      case IN -> path.in(convertedValuesForCriteria(transformedValues, fieldType));
-      case CONTAIN -> cb.like(path.as(String.class), transformedValues.getFirst().toString());
-      case EXCLUDE -> cb.notLike(path.as(String.class), transformedValues.getFirst().toString());
-      case BEGIN -> cb.like(path.as(String.class), transformedValues.getFirst().toString());
-      case NOT_BEGIN -> cb.notLike(path.as(String.class), transformedValues.getFirst().toString());
-      case END -> cb.like(path.as(String.class), transformedValues.getFirst().toString());
-      case NOT_END -> cb.notLike(path.as(String.class), transformedValues.getFirst().toString());
-      case IS_NULL -> cb.isNull(path);
-      case IS_NOT_NULL -> cb.isNotNull(path);
-      case BETWEEN -> {
-        if (Objects.equals(fieldType, String.class)) {
-          yield cb.between(path.as(String.class), transformedValues.get(0),
-              transformedValues.get(1));
-        }
-        // Для дат парсим в объекты даты
-        if (List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
-            .contains(fieldType)) {
-          yield cb.between(
-              (Path) path,
-              parseDateValue(transformedValues.get(0), fieldType),
-              parseDateValue(transformedValues.get(1), fieldType)
-          );
-        }
-
-        // Для чисел используем преобразованные значения
-        yield cb.between(
-            (Path) path,
-            (Comparable) convertValueForCriteria(transformedValues.get(0), fieldType),
-            (Comparable) convertValueForCriteria(transformedValues.get(1), fieldType)
-        );
-      }
-      case MORE_OR_EQUAL -> {
-        if (Objects.equals(fieldType, String.class)) {
-          yield cb.greaterThanOrEqualTo(path.as(String.class), transformedValues.getFirst());
-        }
-        // Для дат парсим в объекты даты
-        if (List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
-            .contains(fieldType)) {
-          yield cb.greaterThanOrEqualTo(
-              (Path) path,
-              parseDateValue(transformedValues.getFirst(), fieldType)
-          );
-        }
-        // Для чисел используем преобразованные значения
-        yield cb.greaterThanOrEqualTo(
-            (Path) path,
-            (Comparable) convertValueForCriteria(transformedValues.getFirst(), fieldType)
-        );
-      }
-      case LESS_OR_EQUAL -> {
-        if (Objects.equals(fieldType, String.class)) {
-          yield cb.lessThanOrEqualTo(path.as(String.class), transformedValues.getFirst());
-        }
-        // Для дат парсим в объекты даты
-        if (List.of(OffsetDateTime.class, LocalDateTime.class, LocalDate.class)
-            .contains(fieldType)) {
-          yield cb.lessThanOrEqualTo(
-              (Path) path,
-              parseDateValue(transformedValues.getFirst(), fieldType)
-          );
-        }
-        // Для чисел используем преобразованные значения
-        yield cb.lessThanOrEqualTo(
-            (Path) path,
-            (Comparable) convertValueForCriteria(transformedValues.getFirst(), fieldType)
-        );
-      }
-    };
-  }
-
-  private Object convertValueForCriteria(String value, Class<?> fieldType) {
-    if (value == null) {
-      return null;
-    }
-
-    return switch (fieldType) {
-      case Class<?> c when c == Long.class -> Long.parseLong(value);
-      case Class<?> c when c == Integer.class -> Integer.parseInt(value);
-      case Class<?> c when c == Double.class -> Double.parseDouble(value);
-      case Class<?> c when c == Float.class -> Float.parseFloat(value);
-      case Class<?> c when c == Boolean.class -> Boolean.parseBoolean(value);
-      default -> value;
-    };
-  }
-
-  private Object[] convertedValuesForCriteria(List<String> values, Class<?> fieldType) {
-    return values.stream()
-        .map(v -> convertValueForCriteria(v, fieldType))
-        .toArray();
-  }
-
-  @SuppressWarnings("unchecked,rawtypes")
-  private Comparable parseDateValue(String value, Class<?> fieldType) {
-    try {
-      return switch (fieldType) {
-        case Class<?> c when c == OffsetDateTime.class -> {
-          // Пытаемся распарсить дату с timezone
-          try {
-            // Сначала пробуем стандартный формат ISO 8601
-            yield OffsetDateTime.parse(value);
-          } catch (Exception e) {
-            // Если не получилось, пробуем формат с двоеточием в timezone
-            var formatter = ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
-            // Заменяем двоеточие в timezone для парсинга
-            var normalized = value.replaceAll("([+-]\\d{2}):(\\d{2})$", "$1$2");
-            yield OffsetDateTime.parse(normalized, formatter);
-          }
-        }
-        case Class<?> c when c == LocalDateTime.class -> LocalDateTime.parse(value,
-            ISO_LOCAL_DATE_TIME);
-        case Class<?> c when c == LocalDate.class -> LocalDate.parse(value, ISO_LOCAL_DATE);
-        default -> throw new IllegalArgumentException("Unsupported date type: " + fieldType);
-      };
-    } catch (Exception e) {
-      throw new ValidationException(
-          "Ошибка парсинга даты: %s для типа %s".formatted(value, fieldType), e);
-    }
+    var pathWithValue = new PathWithValue(path, values, fieldType);
+    return (Predicate) operator.getCriteriaPredicateFunction().apply(cb, pathWithValue);
   }
 
   private List<Order> buildOrders(
