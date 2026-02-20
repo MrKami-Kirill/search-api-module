@@ -16,9 +16,6 @@ import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import jakarta.persistence.metamodel.EntityType;
-import jakarta.persistence.metamodel.PluralAttribute;
-import jakarta.persistence.metamodel.SingularAttribute;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -98,6 +95,8 @@ public abstract class AbstractCriteriaSqlService<E> {
       PaginationDto pagination
   ) {
     var criteriaQuery = cb.createQuery(criteriaInfoInterface.getEntityClass());
+    // Используем DISTINCT joins к коллекциям (избегаем дубликатов)
+    criteriaQuery.distinct(true);
     var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
 
@@ -111,11 +110,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     var predicates = buildPredicates(cb, root, searchData, joinContext);
     if (!predicates.isEmpty()) {
       criteriaQuery.where(predicates.toArray(new Predicate[0]));
-    }
-
-    // Используем DISTINCT если есть joins к коллекциям (избегаем дубликатов)
-    if (hasCollectionJoins(joinContext)) {
-      criteriaQuery.distinct(true);
     }
 
     // Добавляем сортировку
@@ -133,56 +127,7 @@ public abstract class AbstractCriteriaSqlService<E> {
     return query.getResultList();
   }
 
-  private boolean hasCollectionJoins(JoinContext joinContext) {
-    var metamodel = entityManager.getMetamodel();
-    var entityType = metamodel.entity(criteriaInfoInterface.getEntityClass());
 
-    return joinContext.joins.entrySet().stream()
-        .anyMatch(entry -> isCollectionJoin(entityType, entry.getKey()));
-  }
-
-  private boolean isCollectionJoin(EntityType<?> entityType, String joinPath) {
-    var segments = joinPath.split("\\.");
-
-    // Для простого пути (без точек) проверяем только последний сегмент
-    if (segments.length == 1) {
-      var attribute = entityType.getAttribute(segments[0]);
-      return attribute instanceof PluralAttribute<?, ?, ?>;
-    }
-
-    // Для составного пути проверяем каждый сегмент
-    EntityType<?> currentType = entityType;
-
-    for (int i = 0; i < segments.length; i++) {
-      var segment = segments[i];
-      var attribute = currentType.getAttribute(segment);
-
-      // Если атрибут коллекция и это последний сегмент - найден collection join
-      if (attribute instanceof PluralAttribute<?, ?, ?>) {
-        if (i == segments.length - 1) {
-          return true;
-        }
-        // Получаем тип элемента коллекции для продолжения навигации
-        var elementType = ((PluralAttribute<?, ?, ?>) attribute).getElementType();
-        if (elementType instanceof EntityType<?> et) {
-          currentType = et;
-        } else {
-          // Если элемент коллекции не сущность — дальнейшая навигация невозможна
-          return false;
-        }
-      } else if (attribute instanceof SingularAttribute<?, ?> singularAttr) {
-        // Для singular атрибута получаем тип для продолжения навигации
-        var type = singularAttr.getType();
-        if (type instanceof EntityType<?> et) {
-          currentType = et;
-        } else {
-          // Если тип не сущность — дальнейшая навигация невозможна
-          return false;
-        }
-      }
-    }
-    return false;
-  }
 
   private void addJoinsForSearch(Root<E> root, List<SearchDataDto> searchData,
       JoinContext joinContext) {
