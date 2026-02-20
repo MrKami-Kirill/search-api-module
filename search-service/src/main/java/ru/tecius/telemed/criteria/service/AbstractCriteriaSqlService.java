@@ -5,11 +5,15 @@ import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static ru.tecius.telemed.configuration.common.AttributeType.SIMPLE;
+import static ru.tecius.telemed.dto.request.Direction.DESC;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.FetchParent;
 import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
@@ -75,13 +79,14 @@ public abstract class AbstractCriteriaSqlService<E> {
     var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
 
-    // Добавляем необходимые joins для фильтрации и сортировки
+    // 1. Сначала добавляем FETCH-джойны для сортировки (они попадут в SELECT)
+    addFetchJoinsForSort(root, sort, joinContext);
+
+    // 2. Затем добавляем обычные джойны для поиска (те, которых еще нет в контексте)
     addJoinsForSearch(root, searchData, joinContext);
-    addJoinsForSort(root, sort, joinContext);
 
     // Используем DISTINCT только если есть joins к коллекциям
-    boolean needDistinct = joinContext.hasCollectionJoins();
-    criteriaQuery.distinct(needDistinct);
+    criteriaQuery.distinct(joinContext.hasCollectionJoins());
     criteriaQuery.select(root);
 
     // Добавляем условия поиска
@@ -92,7 +97,7 @@ public abstract class AbstractCriteriaSqlService<E> {
 
     // Добавляем сортировку
     if (isNotEmpty(sort)) {
-      var orders = buildOrders(cb, root, sort, joinContext, needDistinct);
+      var orders = buildOrders(cb, root, sort, joinContext);
       if (!orders.isEmpty()) {
         criteriaQuery.orderBy(orders);
       }
@@ -103,11 +108,55 @@ public abstract class AbstractCriteriaSqlService<E> {
 
     // Добавляем пагинацию
     addPagination(query, pagination);
-
     return query.getResultList();
   }
 
+  protected Integer getPageSize(PaginationDto pagination, Integer defaultPageSize) {
+    return nonNull(pagination) && nonNull(pagination.page()) ? pagination.size() : defaultPageSize;
+  }
 
+  protected int calculateTotalPages(Long totalElements, int pageSize) {
+    return nonNull(totalElements)
+        ? (int) Math.ceil((double) totalElements / pageSize)
+        : 0;
+  }
+
+  protected boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
+    return nonNull(pagination) && nonNull(pagination.page())
+        && (pagination.page() + 1) < totalPages;
+  }
+
+  private void addFetchJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
+    if (isNotEmpty(sort)) {
+      sort.forEach(dto -> criteriaInfoInterface.getMultipleAttributeByJsonKey(dto.attribute())
+          .ifPresent(attr -> addFetchFromAttribute(root, attr, joinContext))); //
+    }
+  }
+
+  private void addFetchFromAttribute(Root<E> root, CriteriaSearchAttribute attr, JoinContext joinContext) {
+    FetchParent<?, ?> currentFetch = root;
+    var currentPath = EMPTY;
+
+    for (var joinInfo : attr.db().joinInfo()) {
+      currentPath = getCurrentPath(currentPath, joinInfo);
+
+      // ВАЖНО: Мы НЕ проверяем joinContext.hasJoin(currentPath).
+      // Мы всегда вызываем fetch(), чтобы поля попали в SELECT.
+      // Hibernate объединит fetch с существующим join, если это возможно.
+      var fetch = currentFetch.fetch(joinInfo.path(), JoinType.LEFT);
+
+      if (fetch instanceof Join<?, ?> join) {
+        // Обновляем/добавляем в контекст, чтобы buildOrders мог найти этот Path
+        joinContext.addJoin(currentPath, join);
+      }
+
+      if (isCollectionJoin((From<?, ?>) currentFetch, joinInfo.path())) {
+        joinContext.markAsCollectionJoin(currentPath);
+      }
+
+      currentFetch = fetch;
+    }
+  }
 
   private void addJoinsForSearch(Root<E> root, List<SearchDataDto> searchData,
       JoinContext joinContext) {
@@ -115,13 +164,6 @@ public abstract class AbstractCriteriaSqlService<E> {
       searchData.forEach(
           dto -> criteriaInfoInterface.getMultipleAttributeByJsonKey(dto.attribute())
               .ifPresent(attr -> addJoinsFromAttribute(root, attr, joinContext)));
-    }
-  }
-
-  private void addJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
-    if (isNotEmpty(sort)) {
-      sort.forEach(dto -> criteriaInfoInterface.getMultipleAttributeByJsonKey(dto.attribute())
-          .ifPresent(attr -> addJoinsFromAttribute(root, attr, joinContext)));
     }
   }
 
@@ -227,8 +269,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       CriteriaBuilder cb,
       Root<E> root,
       LinkedList<SortDto> sort,
-      JoinContext joinContext,
-      boolean needDistinct
+      JoinContext joinContext
   ) {
     var orders = new ArrayList<Order>();
 
@@ -237,20 +278,11 @@ public abstract class AbstractCriteriaSqlService<E> {
       var attr = criteriaInfoInterface.getAttributeByJsonKey(attribute,
               "Сортировка по атрибуту %s запрещена".formatted(attribute));
 
-      // Если нужен DISTINCT и сортировка по MULTIPLE атрибуту (join),
-      // пропускаем эту сортировку, так как PostgreSQL требует,
-      // чтобы все поля в ORDER BY присутствовали в SELECT при DISTINCT
-      if (needDistinct && !Objects.equals(attr.type(), SIMPLE)) {
-        log.warn("Сортировка по '{}' пропущена, так как используется DISTINCT (есть joins к коллекциям). "
-            + "При DISTINCT сортировка по полям из joined таблиц не поддерживается PostgreSQL", attribute);
-        continue;
-      }
-
       var path = buildPathFromAttribute(root, attr, joinContext);
 
-      var order = Objects.equals(sortDto.direction(), ru.tecius.telemed.dto.request.Direction.ASC)
-          ? cb.asc(path)
-          : cb.desc(path);
+      var order = Objects.equals(sortDto.direction(), DESC)
+          ? cb.desc(path)
+          : cb.asc(path);
 
       orders.add(order);
     }
@@ -266,21 +298,6 @@ public abstract class AbstractCriteriaSqlService<E> {
       query.setFirstResult(offset);
       query.setMaxResults(pageSize);
     }
-  }
-
-  protected Integer getPageSize(PaginationDto pagination, Integer defaultPageSize) {
-    return nonNull(pagination) && nonNull(pagination.page()) ? pagination.size() : defaultPageSize;
-  }
-
-  protected int calculateTotalPages(Long totalElements, int pageSize) {
-    return nonNull(totalElements)
-        ? (int) Math.ceil((double) totalElements / pageSize)
-        : 0;
-  }
-
-  protected boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
-    return nonNull(pagination) && nonNull(pagination.page())
-        && (pagination.page() + 1) < totalPages;
   }
 
   private String createCurrentPath(LinkedHashSet<JoinInfo> joinInfo) {
