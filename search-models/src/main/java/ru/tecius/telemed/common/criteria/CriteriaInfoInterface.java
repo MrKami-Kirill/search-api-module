@@ -15,4 +15,6 @@ public interface CriteriaInfoInterface<E> {
   Set<CriteriaSearchAttribute> getMultipleAttributes();
 
   Optional<CriteriaSearchAttribute> getMultipleAttributeByJsonKey(String key);
+
+  CriteriaSearchAttribute getAttributeByJsonKey(String key, String errorMessage);
 }

@@ -8,6 +8,7 @@ import com.squareup.javapoet.TypeSpec;
 import java.util.Optional;
 import java.util.Set;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
+import ru.tecius.telemed.exception.ValidationException;
 
 public class CriteriaInfoMethodGenerator {
 
@@ -17,6 +18,7 @@ public class CriteriaInfoMethodGenerator {
     addGetSimpleAttributeByJsonKeyMethod(classBuilder);
     addGetMultipleAttributesMethod(classBuilder);
     addGetMultipleAttributeByJsonKeyMethod(classBuilder);
+    addGetAttributeByJsonKeyMethod(classBuilder);
   }
 
   private void addGetEntityClassMethod(TypeSpec.Builder classBuilder) {
@@ -69,6 +71,21 @@ public class CriteriaInfoMethodGenerator {
             return MULTIPLE_ATTRIBUTES.stream()
                     .filter(attr -> java.util.Objects.equals(attr.json().key(), key))
                     .findAny()""")
+        .build());
+  }
+
+  private void addGetAttributeByJsonKeyMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getAttributeByJsonKey")
+        .addParameter(String.class, "key")
+        .addParameter(String.class, "errorMessage")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(CriteriaSearchAttribute.class)
+        .addStatement("""
+                return getSimpleAttributeByJsonKey(key)
+                        .orElseGet(() -> getMultipleAttributeByJsonKey(key)
+                            .orElseThrow(() -> new $T(errorMessage)))""",
+            ValidationException.class)
         .build());
   }
 

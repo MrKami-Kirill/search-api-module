@@ -23,6 +23,8 @@ public interface SearchInfoInterface<E> {
 
   Optional<NativeSearchAttribute> getMultipleAttributeByJsonKey(String key);
 
+  NativeSearchAttribute getAttributeByJsonKey(String key, String errorMessage);
+
   String createJoinString(JoinInfo joinInfo);
 
   String getFullColumnNameByAttribute(NativeSearchAttribute attribute);

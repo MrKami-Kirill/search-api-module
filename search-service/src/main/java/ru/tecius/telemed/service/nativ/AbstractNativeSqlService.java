@@ -21,7 +21,6 @@ import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
-import ru.tecius.telemed.exception.ValidationException;
 
 public abstract class AbstractNativeSqlService<E> {
 
@@ -112,9 +111,9 @@ public abstract class AbstractNativeSqlService<E> {
 
   private void addOrderBy(StringBuilder sqlBuilder, LinkedList<SortDto> sort) {
     if (isNotEmpty(sort)) {
-      var orderByClause = buildOrderByClauses(sort);
-      if (nonNull(orderByClause)) {
-        sqlBuilder.append(orderByClause)
+      var order = buildOrder(sort);
+      if (nonNull(order)) {
+        sqlBuilder.append(order)
             .append(LF);
       }
     }
@@ -134,7 +133,7 @@ public abstract class AbstractNativeSqlService<E> {
   private Set<JoinInfo> collectUniqueJoins(List<SearchDataDto> searchData,
       LinkedList<SortDto> sort) {
     var joins = new LinkedHashSet<JoinInfo>();
-    if (nonNull(searchData)) {
+    if (isNotEmpty(searchData)) {
       searchData.forEach(dto -> searchInfoInterface.getMultipleAttributeByJsonKey(
               dto.attribute())
           .ifPresent(attr -> joins.addAll(attr.db().joinInfo())));
@@ -151,22 +150,14 @@ public abstract class AbstractNativeSqlService<E> {
 
   private String buildCondition(SearchDataDto searchData, List<Object> params) {
     var attribute = searchData.attribute();
-    var operator = searchData.operator();
-    var values = searchData.value();
-    return searchInfoInterface.getSimpleAttributeByJsonKey(attribute)
-        .map(simpleAttr -> buildSimpleCondition(
-            searchInfoInterface.getFullColumnNameByAttribute(simpleAttr),
-            operator, values, params, simpleAttr.db().type()))
-        .orElseGet(() -> searchInfoInterface.getMultipleAttributeByJsonKey(attribute)
-            .map(multipleAttr -> buildSimpleCondition(
-                searchInfoInterface.getFullColumnNameByAttribute(multipleAttr),
-                operator, values, params,
-                multipleAttr.db().type()))
-            .orElseThrow(() -> new ValidationException(
-                "Фильтрация по атрибуту %s запрещена".formatted(attribute))));
+    var attr = searchInfoInterface.getAttributeByJsonKey(attribute,
+        "Фильтрация по атрибуту %s запрещена".formatted(attribute));
+    return buildCondition(
+        searchInfoInterface.getFullColumnNameByAttribute(attr),
+        searchData.operator(), searchData.value(), params, attr.db().type());
   }
 
-  private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
+  private String buildCondition(String dbField, Operator operator, List<String> values,
       List<Object> params, Class<?> fieldType) {
     operator.checkValue(values);
 
@@ -175,9 +166,9 @@ public abstract class AbstractNativeSqlService<E> {
     return condition;
   }
 
-  private String buildOrderByClauses(LinkedList<SortDto> sort) {
+  private String buildOrder(LinkedList<SortDto> sort) {
     var orderByParts = sort.stream()
-        .map(this::buildSingleOrderByClause)
+        .map(this::buildOrder)
         .filter(Objects::nonNull)
         .toList();
 
@@ -188,26 +179,17 @@ public abstract class AbstractNativeSqlService<E> {
     return "ORDER BY " + join(", ", orderByParts);
   }
 
-  private String buildSingleOrderByClause(SortDto sort) {
+  private String buildOrder(SortDto sort) {
     var attribute = sort.attribute();
-    return searchInfoInterface.getSimpleAttributeByJsonKey(attribute)
-        .map(attr -> "%s %s".formatted(
-            searchInfoInterface.getFullColumnNameByAttribute(attr),
-            sort.direction()))
-        .orElseGet(() -> searchInfoInterface.getMultipleAttributeByJsonKey(attribute)
-            .map(attr -> "%s %s".formatted(
-                searchInfoInterface.getFullColumnNameByAttribute(attr),
-                sort.direction()))
-            .orElseThrow(() -> new ValidationException(
-                "Сортировка по атрибуту %s запрещена".formatted(attribute))));
+    var attr = searchInfoInterface.getAttributeByJsonKey(attribute,
+        "Сортировка по атрибуту %s запрещена".formatted(attribute));
+    return "%s %s".formatted(
+        searchInfoInterface.getFullColumnNameByAttribute(attr),
+        sort.direction());
   }
 
   private String extractFromWithJoinsAndWhere(String sql) {
     int fromIndex = sql.indexOf(" FROM ");
-    if (fromIndex == -1) {
-      throw new RuntimeException("Ошибка составления sql: %s".formatted(sql));
-    }
-
     var orderByIndex = sql.indexOf(" ORDER BY ", fromIndex);
     var limitIndex = sql.indexOf(" LIMIT ", fromIndex);
 

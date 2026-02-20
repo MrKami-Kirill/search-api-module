@@ -94,6 +94,13 @@ public class MenuItemService {
               ],
               "operator": "EQUAL"
             },
+                        {
+              "attribute": "isActive",
+              "value": [
+                "false"
+              ],
+              "operator": "EQUAL"
+            },
             {
               "attribute": "attachmentFileName",
               "value": [

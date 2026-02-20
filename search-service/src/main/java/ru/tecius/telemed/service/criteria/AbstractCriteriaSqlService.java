@@ -1,9 +1,10 @@
 package ru.tecius.telemed.service.criteria;
 
 import static java.util.Objects.nonNull;
-import static javafx.util.Subscription.EMPTY;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static ru.tecius.telemed.configuration.common.AttributeType.SIMPLE;
 import static ru.tecius.telemed.dto.request.Direction.ASC;
 
 import jakarta.persistence.EntityManager;
@@ -33,7 +34,6 @@ import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.PathWithValue;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
-import ru.tecius.telemed.exception.ValidationException;
 
 public abstract class AbstractCriteriaSqlService<E> {
 
@@ -188,18 +188,14 @@ public abstract class AbstractCriteriaSqlService<E> {
       JoinContext joinContext) {
     if (isNotEmpty(searchData)) {
       searchData.forEach(
-          dto -> criteriaInfoInterface.getCriteriaAttributeByJsonField(
-                  dto.attribute())
-              .filter(CriteriaSearchAttribute::requiresJoin)
+          dto -> criteriaInfoInterface.getMultipleAttributeByJsonKey(dto.attribute())
               .ifPresent(attr -> addJoinsFromAttribute(root, attr, joinContext)));
     }
   }
 
   private void addJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
     if (isNotEmpty(sort)) {
-      sort.forEach(dto -> criteriaInfoInterface.getCriteriaAttributeByJsonField(
-              dto.attribute())
-          .filter(CriteriaSearchAttribute::requiresJoin)
+      sort.forEach(dto -> criteriaInfoInterface.getMultipleAttributeByJsonKey(dto.attribute())
           .ifPresent(attr -> addJoinsFromAttribute(root, attr, joinContext)));
     }
   }
@@ -209,7 +205,7 @@ public abstract class AbstractCriteriaSqlService<E> {
     From<?, ?> currentFrom = root;
     var currentPath = EMPTY;
 
-    for (var joinInfo : attr.joinInfo()) {
+    for (var joinInfo : attr.db().joinInfo()) {
       var joinPath = joinInfo.path();
       currentPath = isBlank(currentPath) ? joinPath : currentPath + "." + joinPath;
       // Проверяем, не добавляли ли мы уже такой join
@@ -250,57 +246,33 @@ public abstract class AbstractCriteriaSqlService<E> {
       SearchDataDto searchData,
       JoinContext joinContext
   ) {
-    var attribute = criteriaInfoInterface.getCriteriaAttributeByJsonField(searchData.attribute())
-        .orElseThrow(() -> new ValidationException(
-            "Фильтрация по атрибуту %s запрещена".formatted(searchData.attribute())));
+    var attribute = searchData.attribute();
+    var attr = criteriaInfoInterface.getAttributeByJsonKey(attribute,
+            "Фильтрация по атрибуту %s запрещена".formatted(searchData.attribute()));
 
-    var path = buildPathFromAttribute(root, attribute, joinContext);
-    var operator = searchData.operator();
-    var values = searchData.value();
+    var path = buildPathFromAttribute(root, attr, joinContext);
 
-    return buildPredicateForOperator(cb, path, operator, values, attribute.fieldType());
+    return buildPredicateForOperator(cb, path, searchData.operator(), searchData.value(),
+        attr.db().type());
   }
 
-  @SuppressWarnings("unchecked")
   private Path<?> buildPathFromAttribute(Root<E> root, CriteriaSearchAttribute attribute,
       JoinContext joinContext) {
-    var entityPath = attribute.entityPath();
-    var segments = entityPath.split("\\.");
-
-    if (Objects.equals(segments.length, 1)) {
-      // Простой путь без joins
-      return root.get(segments[0]);
+    var db = attribute.db();
+    if (Objects.equals(attribute.type(), SIMPLE)) {
+      return root.get(db.column());
     }
 
-    // Если атрибут имеет joinInfo, используем последний join для получения поля
-    var joinsList = new ArrayList<>(attribute.joinInfo());
-    if (!joinsList.isEmpty()) {
-      // Берем последний join (он соответствует самой глубокой вложенности)
-      var lastJoinInfo = joinsList.getLast();
-
-      // Строим путь к последнему join
-      var currentPath = "";
-      for (var joinInfo : joinsList) {
-        currentPath = currentPath.isEmpty() ? joinInfo.path() : currentPath + "." + joinInfo.path();
-      }
-
-      // Если такой join был создан, используем его
-      if (joinContext.hasJoinInJoins(currentPath)) {
-        var join = joinContext.getJoin(currentPath);
-        // Получаем поле из join'а
-        return join.get(segments[segments.length - 1]);
-      }
+    // Строим путь к последнему join
+    var currentPath = EMPTY;
+    for (var joinInfo : db.joinInfo()) {
+      currentPath = currentPath.isEmpty() ? joinInfo.path() : currentPath + "." + joinInfo.path();
     }
 
-    // Fallback: пробуем обычную навигацию для @ManyToOne/@OneToOne
-    Path<?> path = root;
-    for (var i = 0; i < segments.length - 1; i++) {
-      path = path.get(segments[i]);
-    }
-    return path.get(segments[segments.length - 1]);
+    var join = joinContext.getJoin(currentPath);
+    return join.get(db.column());
   }
 
-  @SuppressWarnings("unchecked")
   private Predicate buildPredicateForOperator(
       CriteriaBuilder cb,
       Path<?> path,
@@ -323,13 +295,13 @@ public abstract class AbstractCriteriaSqlService<E> {
     var orders = new ArrayList<Order>();
 
     for (var sortDto : sort) {
-      var attribute = criteriaInfoInterface.getCriteriaAttributeByJsonField(sortDto.attribute())
-          .orElseThrow(() -> new ValidationException(
-              "Сортировка по атрибуту %s запрещена".formatted(sortDto.attribute())));
+      var attribute = sortDto.attribute();
+      var attr = criteriaInfoInterface.getAttributeByJsonKey(attribute,
+              "Сортировка по атрибуту %s запрещена".formatted(attribute));
 
-      var path = buildPathFromAttribute(root, attribute, joinContext);
+      var path = buildPathFromAttribute(root, attr, joinContext);
 
-      var order = sortDto.direction() == ASC
+      var order = Objects.equals(sortDto.direction(), ASC)
           ? cb.asc(path)
           : cb.desc(path);
 
