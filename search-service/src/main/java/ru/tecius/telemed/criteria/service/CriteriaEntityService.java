@@ -1,4 +1,4 @@
-package ru.tecius.telemed.service.criteria;
+package ru.tecius.telemed.criteria.service;
 
 import jakarta.persistence.EntityManager;
 import java.util.LinkedList;

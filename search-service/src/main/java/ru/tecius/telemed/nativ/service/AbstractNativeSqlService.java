@@ -1,4 +1,4 @@
-package ru.tecius.telemed.service.nativ;
+package ru.tecius.telemed.nativ.service;
 
 import static java.lang.String.join;
 import static java.util.Objects.nonNull;

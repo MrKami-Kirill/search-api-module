@@ -1,4 +1,4 @@
-package ru.tecius.telemed.service.criteria;
+package ru.tecius.telemed.criteria.service;
 
 import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
@@ -10,24 +10,21 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.From;
-import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 import ru.tecius.telemed.configuration.criteria.JoinInfo;
+import ru.tecius.telemed.criteria.context.JoinContext;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.PathWithValue;
@@ -40,43 +37,6 @@ public abstract class AbstractCriteriaSqlService<E> {
 
   protected final EntityManager entityManager;
   protected final CriteriaInfoInterface<E> criteriaInfoInterface;
-
-  protected static class JoinContext {
-
-    private final Map<String, Join<?, ?>> joins = new LinkedHashMap<>();
-    private final Set<String> processedPaths = new LinkedHashSet<>();
-    private final Set<String> collectionJoins = new LinkedHashSet<>();
-
-    public Join<?, ?> getJoin(String path) {
-      return joins.get(path);
-    }
-
-    public void addJoin(String path, Join<?, ?> join) {
-      joins.put(path, join);
-      processedPaths.add(path);
-    }
-
-    public void markAsCollectionJoin(String path) {
-      collectionJoins.add(path);
-    }
-
-    public boolean hasCollectionJoins() {
-      return !collectionJoins.isEmpty();
-    }
-
-    public Set<String> collectionJoins() {
-      return collectionJoins;
-    }
-
-    public boolean hasJoin(String path) {
-      return processedPaths.contains(path);
-    }
-
-    public boolean hasJoinInJoins(String path) {
-      return joins.containsKey(path);
-    }
-
-  }
 
   protected AbstractCriteriaSqlService(
       EntityManager entityManager,

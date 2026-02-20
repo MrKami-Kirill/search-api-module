@@ -1,4 +1,4 @@
-package ru.tecius.telemed.service.nativ;
+package ru.tecius.telemed.nativ.service;
 
 import java.util.LinkedList;
 import java.util.List;
