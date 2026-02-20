@@ -84,7 +84,7 @@ public abstract class AbstractNativeSqlSqlService<E> {
     if (isNotEmpty(whereConditions)) {
       sqlBuilder.append("WHERE ")
           .append(LF)
-          .append(join("AND ", whereConditions))
+          .append(join("\nAND ", whereConditions))
           .append(LF);
     }
 
