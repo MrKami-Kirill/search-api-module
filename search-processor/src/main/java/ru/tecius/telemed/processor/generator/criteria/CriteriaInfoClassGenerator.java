@@ -11,7 +11,7 @@ import javax.lang.model.element.TypeElement;
 import lombok.RequiredArgsConstructor;
 import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
-import ru.tecius.telemed.configuration.nativ.CriteriaSearchAttributeConfig;
+import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttributeConfig;
 
 @RequiredArgsConstructor
 public class CriteriaInfoClassGenerator {
@@ -59,9 +59,16 @@ public class CriteriaInfoClassGenerator {
 
     classBuilder.addField(FieldSpec.builder(
             ParameterizedTypeName.get(Set.class, CriteriaSearchAttribute.class),
-            "CRITERIA_ATTRIBUTES",
+            "SIMPLE_ATTRIBUTES",
             Modifier.PRIVATE, Modifier.FINAL)
-        .initializer(codeBlockGenerator.generateCriteriaAttributesBlock(criteriaConfigs))
+        .initializer(codeBlockGenerator.generateSimpleAttributesBlock(criteriaConfigs))
+        .build());
+
+    classBuilder.addField(FieldSpec.builder(
+            ParameterizedTypeName.get(Set.class, CriteriaSearchAttribute.class),
+            "MULTIPLE_ATTRIBUTES",
+            Modifier.PRIVATE, Modifier.FINAL)
+        .initializer(codeBlockGenerator.generateMultipleAttributesBlock(criteriaConfigs) )
         .build());
   }
 

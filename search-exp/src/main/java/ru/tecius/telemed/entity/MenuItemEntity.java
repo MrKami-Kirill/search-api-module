@@ -44,7 +44,7 @@ import ru.tecius.telemed.annotation.SearchInfo;
         "menu-item-native-attributes-config.yml"
     },
     criteriaAttributePaths = {
-        "menu-item-criteria-attributes-config.yml"
+        "menu-item-criteria-attributes-config-2.yml"
     })
 public class MenuItemEntity {
 

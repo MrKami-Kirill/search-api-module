@@ -23,19 +23,20 @@ public class CriteriaEntityService<E> extends AbstractCriteriaSqlService<E> {
       LinkedList<SortDto> sort,
       PaginationDto pagination
   ) {
-    var cb = entityManager.getCriteriaBuilder();
-
-    // Сначала считаем общее количество
-    var count = executeCountQuery(cb, searchData);
-
-    // Затем выполняем основной запрос
-    var content = executeSearchQuery(cb, searchData, sort, pagination);
-
-    var pageSize = getPageSize(pagination, 10);
-    var totalPages = calculateTotalPages(count, pageSize);
-    Boolean moreRows = calculateMoreRows(pagination, totalPages);
-
-    return new SearchResponseDto<>(count.intValue(), totalPages, moreRows, content);
+//    var cb = entityManager.getCriteriaBuilder();
+//
+//    // Сначала считаем общее количество
+//    var count = executeCountQuery(cb, searchData);
+//
+//    // Затем выполняем основной запрос
+//    var content = executeSearchQuery(cb, searchData, sort, pagination);
+//
+//    var pageSize = getPageSize(pagination, 10);
+//    var totalPages = calculateTotalPages(count, pageSize);
+//    Boolean moreRows = calculateMoreRows(pagination, totalPages);
+//
+//    return new SearchResponseDto<>(count.intValue(), totalPages, moreRows, content);
+    return null;
   }
 
 }

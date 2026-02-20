@@ -13,8 +13,10 @@ public class CriteriaInfoMethodGenerator {
 
   public void addInterfaceMethods(TypeSpec.Builder classBuilder) {
     addGetEntityClassMethod(classBuilder);
-    addGetCriteriaAttributesMethod(classBuilder);
-    addGetCriteriaAttributeByJsonFieldMethod(classBuilder);
+    addGetSimpleAttributesMethod(classBuilder);
+    addGetSimpleAttributeByJsonKeyMethod(classBuilder);
+    addGetMultipleAttributesMethod(classBuilder);
+    addGetMultipleAttributeByJsonKeyMethod(classBuilder);
   }
 
   private void addGetEntityClassMethod(TypeSpec.Builder classBuilder) {
@@ -26,24 +28,46 @@ public class CriteriaInfoMethodGenerator {
         .build());
   }
 
-  private void addGetCriteriaAttributesMethod(TypeSpec.Builder classBuilder) {
-    classBuilder.addMethod(MethodSpec.methodBuilder("getCriteriaAttributes")
+  private void addGetSimpleAttributesMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getSimpleAttributes")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
         .returns(ParameterizedTypeName.get(Set.class, CriteriaSearchAttribute.class))
-        .addStatement("return CRITERIA_ATTRIBUTES")
+        .addStatement("return SIMPLE_ATTRIBUTES")
         .build());
   }
 
-  private void addGetCriteriaAttributeByJsonFieldMethod(TypeSpec.Builder classBuilder) {
-    classBuilder.addMethod(MethodSpec.methodBuilder("getCriteriaAttributeByJsonField")
-        .addParameter(String.class, "jsonField")
+  private void addGetSimpleAttributeByJsonKeyMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getSimpleAttributeByJsonKey")
+        .addParameter(String.class, "key")
         .addAnnotation(Override.class)
         .addModifiers(PUBLIC)
         .returns(ParameterizedTypeName.get(Optional.class, CriteriaSearchAttribute.class))
         .addStatement("""
-            return CRITERIA_ATTRIBUTES.stream()
-                    .filter(attr -> java.util.Objects.equals(attr.jsonField(), jsonField))
+            return SIMPLE_ATTRIBUTES.stream()
+                    .filter(attr -> java.util.Objects.equals(attr.json().key(), key))
+                    .findAny()""")
+        .build());
+  }
+
+  private void addGetMultipleAttributesMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributes")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(ParameterizedTypeName.get(Set.class, CriteriaSearchAttribute.class))
+        .addStatement("return MULTIPLE_ATTRIBUTES")
+        .build());
+  }
+
+  private void addGetMultipleAttributeByJsonKeyMethod(TypeSpec.Builder classBuilder) {
+    classBuilder.addMethod(MethodSpec.methodBuilder("getMultipleAttributeByJsonKey")
+        .addParameter(String.class, "key")
+        .addAnnotation(Override.class)
+        .addModifiers(PUBLIC)
+        .returns(ParameterizedTypeName.get(Optional.class, CriteriaSearchAttribute.class))
+        .addStatement("""
+            return MULTIPLE_ATTRIBUTES.stream()
+                    .filter(attr -> java.util.Objects.equals(attr.json().key(), key))
                     .findAny()""")
         .build());
   }

@@ -82,7 +82,7 @@ public class MenuItemService {
               "direction": "DESC"
             },
             {
-              "attribute": "attachmentFileName",
+              "attribute": "documentId",
               "direction": "ASC"
             }
           ],

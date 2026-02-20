@@ -14,7 +14,7 @@ import java.util.List;
 import javax.annotation.processing.ProcessingEnvironment;
 import org.springframework.validation.Validator;
 import org.yaml.snakeyaml.Yaml;
-import ru.tecius.telemed.configuration.nativ.CriteriaSearchAttributeConfig;
+import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttributeConfig;
 import ru.tecius.telemed.configuration.nativ.NativeSearchAttributeConfig;
 import ru.tecius.telemed.processor.error.ErrorHandler;
 import ru.tecius.telemed.exception.ProcessingException;

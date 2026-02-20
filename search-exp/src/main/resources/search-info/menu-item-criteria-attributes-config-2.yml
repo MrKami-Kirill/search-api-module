@@ -1,0 +1,193 @@
+attributes:
+  # === Прямые поля MenuItemEntity ===
+  - type: SIMPLE
+    json:
+      key: id
+    db:
+      column: id
+      type: java.lang.Long
+
+  - type: SIMPLE
+    json:
+      key: title
+    db:
+      column: title
+      type: java.lang.String
+
+  - type: SIMPLE
+    json:
+      key: path
+    db:
+      column: path
+      type: java.lang.String
+
+  - type: SIMPLE
+    json:
+      key: isActive
+    db:
+      column: isActive
+      type: java.lang.Boolean
+
+  - type: SIMPLE
+    json:
+      key: inheritParentPermissions
+    db:
+      column: inheritParentPermissions
+      type: java.lang.Boolean
+
+  - type: SIMPLE
+    json:
+      key: availableEveryone
+    db:
+      column: availableEveryone
+      type: java.lang.Boolean
+
+  - type: SIMPLE
+    json:
+      key: createDate
+    db:
+      column: createDate
+      type: java.time.OffsetDateTime
+
+  - type: SIMPLE
+    json:
+      key: lastUpdateDate
+    db:
+      column: lastUpdateDate
+      type: java.time.OffsetDateTime
+
+  # === @OneToOne связи ===
+  # MenuItemEntity -> DocumentEntity (поле "document")
+  - type: MULTIPLE
+    json:
+      key: documentId
+    db:
+      column: id
+      joinInfo:
+        - order: 1
+          path: document
+          type: LEFT
+      type: java.lang.Long
+
+  - type: MULTIPLE
+    json:
+      key: documentAllowComments
+    db:
+      column: allowComments
+      joinInfo:
+        - order: 1
+          path: document
+          type: LEFT
+      type: java.lang.Boolean
+
+  - type: MULTIPLE
+    json:
+      key: documentVersion
+    db:
+      column: version
+      joinInfo:
+        - order: 1
+          path: document
+          type: LEFT
+      type: java.lang.Integer
+
+  - type: MULTIPLE
+    json:
+      key: documentState
+    db:
+      column: state
+      joinInfo:
+        - order: 1
+          path: document
+          type: LEFT
+      type: java.lang.String
+#      type: ru.tecius.telemed.entity.DocumentState
+
+  # === @ManyToOne связи ===
+  # MenuItemEntity -> UserEntity (поле "creator")
+  - type: MULTIPLE
+    json:
+      key: creatorFullname
+    db:
+      column: fullName
+      joinInfo:
+        - order: 1
+          path: creator
+          type: LEFT
+      type: java.lang.String
+
+  - type: MULTIPLE
+    json:
+      key: lastModifierFullname
+    db:
+      column: fullName
+      joinInfo:
+        - order: 1
+          path: lastModifier
+          type: LEFT
+      type: java.lang.String
+
+  # MenuItemEntity -> MenuItemEntity (поле "parent")
+  - type: MULTIPLE
+    json:
+      key: parentTitle
+    db:
+      column: title
+      joinInfo:
+        - order: 1
+          path: parent
+          type: LEFT
+      type: java.lang.String
+
+  # === @OneToMany связи (коллекции) ===
+  # MenuItemEntity -> DocumentEntity -> Set<DocumentAttachmentEntity>
+  # Путь: document.attachments - сначала join'им document, затем коллекцию attachments
+  - type: MULTIPLE
+    json:
+      key: attachmentFileName
+    db:
+      column: fileName
+      joinInfo:
+        - order: 1
+          path: document
+          type: LEFT
+        - order: 2
+          path: attachments
+          type: LEFT
+      type: java.lang.String
+
+  - type: MULTIPLE
+    json:
+      key: attachmentExtension
+    db:
+      column: extension
+      joinInfo:
+        - order: 1
+          path: document
+          type: LEFT
+        - order: 2
+          path: attachments
+          type: LEFT
+      type: java.lang.String
+
+  # === ПРИМЕЧАНИЯ ===
+  #
+  # 1. Формат конфигурации:
+  #    - jsonField: имя поля в JSON запросе от клиента
+  #    - entityPath: реальный путь к полю в JPA сущности
+  #    - path в joinInfo: имя поля связи в ТЕКУЩЕЙ сущности
+  #    - alias в joinInfo: уникальный идентификатор join'а
+  #
+  # 2. Для @ManyToOne/@OneToOne:
+  #    entityPath: creator.email
+  #    joinInfo: [{path: creator, alias: cr, type: LEFT}]
+  #
+  # 3. Для @OneToMany/@ManyToMany:
+  #    entityPath: attachments.fileName    # Начинается с поля-коллекции!
+  #    joinInfo:
+  #      - {path: document, alias: d, type: LEFT}
+  #      - {path: attachments, alias: a, type: LEFT}
+  #
+  # 4. DISTINCT:
+  #    При поиске по коллекциям автоматически используется DISTINCT
+  #    для предотвращения дубликатов результатов.

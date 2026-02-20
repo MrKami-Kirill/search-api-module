@@ -8,7 +8,11 @@ public interface CriteriaInfoInterface<E> {
 
   Class<E> getEntityClass();
 
-  Set<CriteriaSearchAttribute> getCriteriaAttributes();
+  Set<CriteriaSearchAttribute> getSimpleAttributes();
 
-  Optional<CriteriaSearchAttribute> getCriteriaAttributeByJsonField(String jsonField);
+  Optional<CriteriaSearchAttribute> getSimpleAttributeByJsonKey(String key);
+
+  Set<CriteriaSearchAttribute> getMultipleAttributes();
+
+  Optional<CriteriaSearchAttribute> getMultipleAttributeByJsonKey(String key);
 }

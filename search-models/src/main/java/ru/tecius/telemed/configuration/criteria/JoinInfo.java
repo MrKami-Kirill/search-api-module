@@ -5,10 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record JoinInfo(
-    @NotBlank(message = "Поле attribute.joinInfo.path не может быть пустым")
+    @NotNull(message = "Поле attributes.db.joinInfo.order не может быть null")
+    Integer order,
+
+    @NotBlank(message = "Поле attributes.db.joinInfo.path не может быть пустым")
     String path,
 
-    @NotNull(message = "Поле attribute.joinInfo.type не может быть null")
+    @NotNull(message = "Поле attributes.db.joinInfo.type не может быть null")
     JoinType type
 ) {
 }

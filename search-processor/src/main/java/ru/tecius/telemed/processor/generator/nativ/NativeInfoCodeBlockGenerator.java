@@ -1,7 +1,7 @@
 package ru.tecius.telemed.processor.generator.nativ;
 
-import static ru.tecius.telemed.configuration.nativ.AttributeType.MULTIPLE;
-import static ru.tecius.telemed.configuration.nativ.AttributeType.SIMPLE;
+import static ru.tecius.telemed.configuration.common.AttributeType.MULTIPLE;
+import static ru.tecius.telemed.configuration.common.AttributeType.SIMPLE;
 import static ru.tecius.telemed.processor.util.ProcessorStaticUtils.getTableAlias;
 
 import com.squareup.javapoet.CodeBlock;
@@ -11,7 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import ru.tecius.telemed.configuration.nativ.AttributeType;
+import ru.tecius.telemed.configuration.common.AttributeType;
 import ru.tecius.telemed.configuration.nativ.DbData;
 import ru.tecius.telemed.configuration.nativ.JoinData;
 import ru.tecius.telemed.configuration.nativ.JoinInfo;
