@@ -5,7 +5,6 @@ import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static ru.tecius.telemed.configuration.common.AttributeType.SIMPLE;
-import static ru.tecius.telemed.dto.request.Direction.ASC;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -24,8 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
+import ru.tecius.telemed.configuration.criteria.JoinInfo;
 import ru.tecius.telemed.dto.request.Operator;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.PathWithValue;
@@ -34,6 +36,8 @@ import ru.tecius.telemed.dto.request.SortDto;
 
 public abstract class AbstractCriteriaSqlService<E> {
 
+  private static final Logger log = LoggerFactory.getLogger(AbstractCriteriaSqlService.class);
+
   protected final EntityManager entityManager;
   protected final CriteriaInfoInterface<E> criteriaInfoInterface;
 
@@ -41,6 +45,7 @@ public abstract class AbstractCriteriaSqlService<E> {
 
     private final Map<String, Join<?, ?>> joins = new LinkedHashMap<>();
     private final Set<String> processedPaths = new LinkedHashSet<>();
+    private final Set<String> collectionJoins = new LinkedHashSet<>();
 
     public Join<?, ?> getJoin(String path) {
       return joins.get(path);
@@ -49,6 +54,18 @@ public abstract class AbstractCriteriaSqlService<E> {
     public void addJoin(String path, Join<?, ?> join) {
       joins.put(path, join);
       processedPaths.add(path);
+    }
+
+    public void markAsCollectionJoin(String path) {
+      collectionJoins.add(path);
+    }
+
+    public boolean hasCollectionJoins() {
+      return !collectionJoins.isEmpty();
+    }
+
+    public Set<String> collectionJoins() {
+      return collectionJoins;
     }
 
     public boolean hasJoin(String path) {
@@ -95,8 +112,6 @@ public abstract class AbstractCriteriaSqlService<E> {
       PaginationDto pagination
   ) {
     var criteriaQuery = cb.createQuery(criteriaInfoInterface.getEntityClass());
-    // Используем DISTINCT joins к коллекциям (избегаем дубликатов)
-    criteriaQuery.distinct(true);
     var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
     var joinContext = new JoinContext();
 
@@ -104,6 +119,9 @@ public abstract class AbstractCriteriaSqlService<E> {
     addJoinsForSearch(root, searchData, joinContext);
     addJoinsForSort(root, sort, joinContext);
 
+    // Используем DISTINCT только если есть joins к коллекциям
+    boolean needDistinct = joinContext.hasCollectionJoins();
+    criteriaQuery.distinct(needDistinct);
     criteriaQuery.select(root);
 
     // Добавляем условия поиска
@@ -114,8 +132,10 @@ public abstract class AbstractCriteriaSqlService<E> {
 
     // Добавляем сортировку
     if (isNotEmpty(sort)) {
-      var orders = buildOrders(cb, root, sort, joinContext);
-      criteriaQuery.orderBy(orders);
+      var orders = buildOrders(cb, root, sort, joinContext, needDistinct);
+      if (!orders.isEmpty()) {
+        criteriaQuery.orderBy(orders);
+      }
     }
 
     // Создаем запрос
@@ -151,18 +171,37 @@ public abstract class AbstractCriteriaSqlService<E> {
     var currentPath = EMPTY;
 
     for (var joinInfo : attr.db().joinInfo()) {
+      currentPath = getCurrentPath(currentPath, joinInfo);
       var joinPath = joinInfo.path();
-      currentPath = isBlank(currentPath) ? joinPath : currentPath + "." + joinPath;
       // Проверяем, не добавляли ли мы уже такой join
       if (!joinContext.hasJoin(currentPath)) {
         var join = currentFrom.join(joinPath, joinInfo.type());
         joinContext.addJoin(currentPath, join);
+        // Определяем, является ли этот join коллекцией (@OneToMany, @ManyToMany, @ElementCollection)
+        if (isCollectionJoin(currentFrom, joinPath)) {
+          joinContext.markAsCollectionJoin(currentPath);
+        }
+
         currentFrom = join;
       } else {
         // Используем уже созданный join
         currentFrom = joinContext.getJoin(currentPath);
       }
     }
+  }
+
+  /**
+   * Проверяет, является ли join к полю коллекцией.
+   * Коллекциями считаются ассоциации @OneToMany, @ManyToMany и @ElementCollection.
+   */
+  private boolean isCollectionJoin(From<?, ?> from, String attributeName) {
+      var metamodel = entityManager.getMetamodel();
+      // Получаем тип сущности, от которой делаем join
+      var javaType = from.getJavaType();
+      var entityType = metamodel.entity(javaType);
+      // Проверяем атрибут
+      var attribute = entityType.getAttribute(attributeName);
+      return attribute.isCollection();
   }
 
   private List<Predicate> buildPredicates(
@@ -208,14 +247,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       return root.get(db.column());
     }
 
-    // Строим путь к последнему join
-    var currentPath = EMPTY;
-    for (var joinInfo : db.joinInfo()) {
-      currentPath = currentPath.isEmpty() ? joinInfo.path() : currentPath + "." + joinInfo.path();
-    }
-
-    var join = joinContext.getJoin(currentPath);
-    return join.get(db.column());
+    return joinContext.getJoin(createCurrentPath(db.joinInfo())).get(db.column());
   }
 
   private Predicate buildPredicateForOperator(
@@ -235,7 +267,8 @@ public abstract class AbstractCriteriaSqlService<E> {
       CriteriaBuilder cb,
       Root<E> root,
       LinkedList<SortDto> sort,
-      JoinContext joinContext
+      JoinContext joinContext,
+      boolean needDistinct
   ) {
     var orders = new ArrayList<Order>();
 
@@ -244,9 +277,18 @@ public abstract class AbstractCriteriaSqlService<E> {
       var attr = criteriaInfoInterface.getAttributeByJsonKey(attribute,
               "Сортировка по атрибуту %s запрещена".formatted(attribute));
 
+      // Если нужен DISTINCT и сортировка по MULTIPLE атрибуту (join),
+      // пропускаем эту сортировку, так как PostgreSQL требует,
+      // чтобы все поля в ORDER BY присутствовали в SELECT при DISTINCT
+      if (needDistinct && !Objects.equals(attr.type(), SIMPLE)) {
+        log.warn("Сортировка по '{}' пропущена, так как используется DISTINCT (есть joins к коллекциям). "
+            + "При DISTINCT сортировка по полям из joined таблиц не поддерживается PostgreSQL", attribute);
+        continue;
+      }
+
       var path = buildPathFromAttribute(root, attr, joinContext);
 
-      var order = Objects.equals(sortDto.direction(), ASC)
+      var order = Objects.equals(sortDto.direction(), ru.tecius.telemed.dto.request.Direction.ASC)
           ? cb.asc(path)
           : cb.desc(path);
 
@@ -279,5 +321,18 @@ public abstract class AbstractCriteriaSqlService<E> {
   protected boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
     return nonNull(pagination) && nonNull(pagination.page())
         && (pagination.page() + 1) < totalPages;
+  }
+
+  private String createCurrentPath(LinkedHashSet<JoinInfo> joinInfo) {
+    var currentPath = EMPTY;
+    for (var join : joinInfo) {
+      currentPath = getCurrentPath(currentPath, join);
+    }
+
+    return currentPath;
+  }
+
+  private String getCurrentPath(String currentPath, JoinInfo join) {
+    return isBlank(currentPath) ? join.path() : currentPath + "." + join.path();
   }
 }
