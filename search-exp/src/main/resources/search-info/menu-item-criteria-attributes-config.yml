@@ -1,61 +1,73 @@
 attributes:
   # === Прямые поля MenuItemEntity ===
-  - jsonField: id
+  - attributeType: SIMPLE
+    jsonField: id
     entityPath: id
     fieldType: java.lang.Long
 
-  - jsonField: title
+  - attributeType: SIMPLE
+    jsonField: title
     entityPath: title
     fieldType: java.lang.String
 
-  - jsonField: path
+  - attributeType: SIMPLE
+    jsonField: path
     entityPath: path
     fieldType: java.lang.String
 
-  - jsonField: isActive
+  - attributeType: SIMPLE
+    jsonField: isActive
     entityPath: isActive
     fieldType: java.lang.Boolean
 
-  - jsonField: inheritParentPermissions
+  - attributeType: SIMPLE
+    jsonField: inheritParentPermissions
     entityPath: inheritParentPermissions
     fieldType: java.lang.Boolean
 
-  - jsonField: availableEveryone
+  - attributeType: SIMPLE
+    jsonField: availableEveryone
     entityPath: availableEveryone
     fieldType: java.lang.Boolean
 
-  - jsonField: createDate
+  - attributeType: SIMPLE
+    jsonField: createDate
     entityPath: createDate
     fieldType: java.time.OffsetDateTime
 
-  - jsonField: lastUpdateDate
+  - attributeType: SIMPLE
+    jsonField: lastUpdateDate
     entityPath: lastUpdateDate
     fieldType: java.time.OffsetDateTime
 
   # === @OneToOne связи ===
   # MenuItemEntity -> DocumentEntity (поле "document")
-  - jsonField: documentId
+  - attributeType: MULTIPLE
+    jsonField: documentId
     entityPath: document.id
     fieldType: java.lang.Long
     joinInfo:
       - path: document        # Имя поля в MenuItemEntity
         type: LEFT
 
-  - jsonField: documentAllowComments
+  - attributeType: MULTIPLE
+    jsonField: documentAllowComments
     entityPath: document.allowComments
     fieldType: java.lang.Boolean
     joinInfo:
       - path: document
         type: LEFT
 
-  - jsonField: documentVersion
+  - attributeType: MULTIPLE
+    jsonField: documentVersion
     entityPath: document.version
     fieldType: java.lang.Integer
     joinInfo:
       - path: document
         type: LEFT
 
-  - jsonField: documentState
+  - attributeType: MULTIPLE
+    jsonField: documentState
     entityPath: document.state
     fieldType: java.lang.String
     joinInfo:
@@ -64,7 +76,8 @@ attributes:
 
   # === @ManyToOne связи ===
   # MenuItemEntity -> UserEntity (поле "creator")
-  - jsonField: creatorFullname
+  - attributeType: MULTIPLE
+    jsonField: creatorFullname
     entityPath: creator.fullName
     fieldType: java.lang.String
     joinInfo:
@@ -72,7 +85,8 @@ attributes:
         type: LEFT
 
   # MenuItemEntity -> UserEntity (поле "lastModifier")
-  - jsonField: lastModifierFullname
+  - attributeType: MULTIPLE
+    jsonField: lastModifierFullname
     entityPath: lastModifier.fullName
     fieldType: java.lang.String
     joinInfo:
@@ -80,7 +94,8 @@ attributes:
         type: LEFT
 
   # MenuItemEntity -> MenuItemEntity (поле "parent")
-  - jsonField: parentTitle
+  - attributeType: MULTIPLE
+    jsonField: parentTitle
     entityPath: parent.title
     fieldType: java.lang.String
     joinInfo:
@@ -93,7 +108,8 @@ attributes:
   #
   # ВАЖНО: entityPath начинается с "attachments" (имя поля-коллекции),
   # а НЕ с "document.attachments"!
-  - jsonField: attachmentFileName
+  - attributeType: MULTIPLE
+    jsonField: attachmentFileName
     entityPath: document.attachments.fileName       # Начинается с коллекции!
     fieldType: java.lang.String
     joinInfo:
@@ -102,7 +118,8 @@ attributes:
       - path: attachments                  # Шаг 2: join @OneToMany коллекцию
         type: LEFT
 
-  - jsonField: attachmentExtension
+  - attributeType: MULTIPLE
+    jsonField: attachmentExtension
     entityPath: document.attachments.extension
     fieldType: java.lang.String
     joinInfo:

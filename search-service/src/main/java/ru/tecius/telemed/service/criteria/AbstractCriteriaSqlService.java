@@ -36,20 +36,11 @@ import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
 import ru.tecius.telemed.exception.ValidationException;
 
-/**
- * Абстрактный базовый класс для построения запросов через JPA Criteria API. Предоставляет общую
- * логику для создания динамических запросов с поддержкой: - Динамических условий поиска -
- * Сортировки - Пагинации - Fetch joins для оптимизации загрузки связанных сущностей - Поддержки
- * коллекций через явные JOIN
- */
 public abstract class AbstractCriteriaSqlService<E> {
 
   protected final EntityManager entityManager;
   protected final CriteriaInfoInterface<E> criteriaInfoInterface;
 
-  /**
-   * Контекст для хранения созданных joins и fetches в рамках выполнения запроса.
-   */
   protected static class JoinContext {
 
     private final Map<String, Join<?, ?>> joins = new LinkedHashMap<>();
@@ -82,9 +73,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     this.criteriaInfoInterface = criteriaInfoInterface;
   }
 
-  /**
-   * Выполняет count запрос для подсчета общего количества записей.
-   */
   protected Long executeCountQuery(CriteriaBuilder cb, List<SearchDataDto> searchData) {
     var criteriaQuery = cb.createQuery(Long.class);
     var root = criteriaQuery.from(criteriaInfoInterface.getEntityClass());
@@ -104,9 +92,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     return entityManager.createQuery(criteriaQuery).getSingleResult();
   }
 
-  /**
-   * Выполняет основной поисковый запрос.
-   */
   protected List<E> executeSearchQuery(
       CriteriaBuilder cb,
       List<SearchDataDto> searchData,
@@ -149,22 +134,13 @@ public abstract class AbstractCriteriaSqlService<E> {
     return query.getResultList();
   }
 
-  /**
-   * Проверяет, есть ли среди joins joins к коллекциям (@OneToMany, @ManyToMany). Такие joins могут
-   * привести к дублированию результатов.
-   */
   private boolean hasCollectionJoins(JoinContext joinContext) {
-    // Для упрощения проверяем, есть ли joins по определенным путям
-    // В реальном приложении можно использовать метаданные JPA для точной проверки
     return joinContext.joins.keySet().stream()
         .anyMatch(
             path -> path.contains("attachments") || path.contains("comments") || path.contains(
                 "children"));
   }
 
-  /**
-   * Добавляет joins, необходимые для условий поиска.
-   */
   private void addJoinsForSearch(Root<E> root, List<SearchDataDto> searchData,
       JoinContext joinContext) {
     if (isNotEmpty(searchData)) {
@@ -176,9 +152,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     }
   }
 
-  /**
-   * Добавляет joins, необходимые для сортировки.
-   */
   private void addJoinsForSort(Root<E> root, LinkedList<SortDto> sort, JoinContext joinContext) {
     if (isNotEmpty(sort)) {
       sort.forEach(dto -> criteriaInfoInterface.getCriteriaAttributeByJsonField(
@@ -188,10 +161,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     }
   }
 
-  /**
-   * Добавляет joins, описанные в атрибуте, и сохраняет их в контексте. Поддерживает цепочку joins
-   * для навигации по коллекциям.
-   */
   private void addJoinsFromAttribute(Root<E> root, CriteriaSearchAttribute attr,
       JoinContext joinContext) {
     From<?, ?> currentFrom = root;
@@ -212,9 +181,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     }
   }
 
-  /**
-   * Строит предикаты для условий поиска.
-   */
   private List<Predicate> buildPredicates(
       CriteriaBuilder cb,
       Root<E> root,
@@ -235,9 +201,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     return predicates;
   }
 
-  /**
-   * Строит одиночный предикат для условия поиска.
-   */
   private Predicate buildPredicate(
       CriteriaBuilder cb,
       Root<E> root,
@@ -255,10 +218,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     return buildPredicateForOperator(cb, path, operator, values, attribute.fieldType());
   }
 
-  /**
-   * Строит путь к полю для Criteria API на основе атрибута и созданных joins. Использует информацию
-   * о joins из конфигурации атрибута.
-   */
   @SuppressWarnings("unchecked")
   private Path<?> buildPathFromAttribute(Root<E> root, CriteriaSearchAttribute attribute,
       JoinContext joinContext) {
@@ -298,9 +257,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     return path.get(segments[segments.length - 1]);
   }
 
-  /**
-   * Строит предикат для оператора.
-   */
   @SuppressWarnings("unchecked,rawtypes")
   private Predicate buildPredicateForOperator(
       CriteriaBuilder cb,
@@ -391,9 +347,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     };
   }
 
-  /**
-   * Преобразует строковое значение в соответствующий тип для Criteria API.
-   */
   private Object convertValueForCriteria(String value, Class<?> fieldType) {
     if (value == null) {
       return null;
@@ -408,18 +361,12 @@ public abstract class AbstractCriteriaSqlService<E> {
     };
   }
 
-  /**
-   * Преобразует список строковых значений в соответствующие типы для Criteria API.
-   */
   private Object[] convertedValuesForCriteria(List<String> values, Class<?> fieldType) {
     return values.stream()
         .map(v -> convertValueForCriteria(v, fieldType))
         .toArray();
   }
 
-  /**
-   * Парсит строковое значение даты в объект даты для Criteria API.
-   */
   @SuppressWarnings("unchecked,rawtypes")
   private Comparable parseDateValue(String value, Class<?> fieldType) {
     try {
@@ -448,9 +395,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     }
   }
 
-  /**
-   * Строит условия сортировки.
-   */
   private List<Order> buildOrders(
       CriteriaBuilder cb,
       Root<E> root,
@@ -476,9 +420,6 @@ public abstract class AbstractCriteriaSqlService<E> {
     return orders;
   }
 
-  /**
-   * Добавляет пагинацию к запросу.
-   */
   private void addPagination(TypedQuery<E> query, PaginationDto pagination) {
     if (nonNull(pagination) && nonNull(pagination.page())) {
       var pageSize = pagination.size();

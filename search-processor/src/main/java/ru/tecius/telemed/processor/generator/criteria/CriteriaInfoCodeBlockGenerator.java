@@ -1,5 +1,7 @@
 package ru.tecius.telemed.processor.generator.criteria;
 
+import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
+
 import com.squareup.javapoet.CodeBlock;
 import jakarta.persistence.criteria.JoinType;
 import java.util.ArrayList;
@@ -9,91 +11,54 @@ import java.util.List;
 import java.util.Set;
 import ru.tecius.telemed.configuration.criteria.CriteriaJoinInfo;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
+import ru.tecius.telemed.configuration.nativ.AttributeType;
 import ru.tecius.telemed.configuration.nativ.CriteriaSearchAttributeConfig;
 
-/**
- * Генератор блоков кода для CriteriaInfoInterface.
- */
 public class CriteriaInfoCodeBlockGenerator {
 
-  /**
-   * Генерирует блок инициализации CRITERIA_ATTRIBUTES.
-   */
   public CodeBlock generateCriteriaAttributesBlock(List<CriteriaSearchAttributeConfig> configs) {
     var builder = CodeBlock.builder();
 
     var allAttributes = new ArrayList<CriteriaSearchAttribute>();
-    for (var config : configs) {
-      allAttributes.addAll(config.attributes());
-    }
+    configs.forEach(config -> allAttributes.addAll(config.attributes()));
 
     if (allAttributes.isEmpty()) {
       builder.add("$T.of()", Set.class);
       return builder.build();
     }
 
-    // Создаем через Arrays.asList и new LinkedHashSet
     builder.add("new $T<$T>($T.asList(\n", LinkedHashSet.class, CriteriaSearchAttribute.class, Arrays.class);
 
-    for (int i = 0; i < allAttributes.size(); i++) {
+    var allAttributesSize = allAttributes.size();
+    for (int i = 0; i < allAttributesSize; i++) {
       var attr = allAttributes.get(i);
-      builder.add("  new $T(\n", CriteriaSearchAttribute.class);
-      builder.add("    $S,\n", attr.jsonField());
-      builder.add("    $S,\n", attr.entityPath());
-      builder.add("    $T.class,\n", attr.fieldType());
+      builder.add("\tnew $T(\n", CriteriaSearchAttribute.class);
+      builder.add("\t\t$T.$L,\n", AttributeType.class, attr.attributeType());
+      builder.add("\t\t$S,\n", attr.jsonField());
+      builder.add("\t\t$S,\n", attr.entityPath());
+      builder.add("\t\t$T.class,\n", attr.fieldType());
 
-      if (attr.joinInfo() != null && !attr.joinInfo().isEmpty()) {
-        builder.add("    new $T<$T>($T.asList(\n", LinkedHashSet.class, CriteriaJoinInfo.class, Arrays.class);
+      var joinInfo = attr.joinInfo();
+      if (isNotEmpty(joinInfo)) {
+        builder.add("\tnew $T<$T>($T.asList(\n", LinkedHashSet.class, CriteriaJoinInfo.class, Arrays.class);
         var joins = new ArrayList<>(attr.joinInfo());
         for (int j = 0; j < joins.size(); j++) {
           var join = joins.get(j);
-          builder.add("      new $T(\n", CriteriaJoinInfo.class);
-          builder.add("        $S,\n", join.path());
-          builder.add("        $T.$L\n", JoinType.class, join.type());
-          builder.add(j < joins.size() - 1 ? "      ),\n" : "      )\n");
+          builder.add("\tnew $T(\n", CriteriaJoinInfo.class);
+          builder.add("\t$S,\n", join.path());
+          builder.add("\t$T.$L\n", JoinType.class, join.type());
+          builder.add(j < joins.size() - 1 ? "),\n" : ")\n");
         }
-        builder.add("    ))\n");
+        builder.add("\t))\n");
       } else {
-        builder.add("    null\n");
+        builder.add("\tnull\n");
       }
 
-      builder.add(i < allAttributes.size() - 1 ? "  ),\n" : "  )\n");
+      builder.add(i < allAttributesSize - 1 ? "),\n" : ")\n");
     }
 
     builder.add("))");
     return builder.build();
   }
 
-  /**
-   * Генерирует блок инициализации ALL_JOINS.
-   */
-  public CodeBlock generateAllJoinsBlock(List<CriteriaSearchAttributeConfig> configs) {
-    var builder = CodeBlock.builder();
-
-    var allJoins = configs.stream()
-        .flatMap(config -> config.attributes().stream())
-        .filter(attr -> attr.joinInfo() != null && !attr.joinInfo().isEmpty())
-        .flatMap(attr -> attr.joinInfo().stream())
-        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-
-    if (allJoins.isEmpty()) {
-      builder.add("$T.of()", Set.class);
-      return builder.build();
-    }
-
-    // Создаем через Arrays.asList и new HashSet
-    builder.add("new $T<$T>($T.asList(\n", LinkedHashSet.class, CriteriaJoinInfo.class, Arrays.class);
-
-    var joinsList = new ArrayList<>(allJoins);
-    for (int i = 0; i < joinsList.size(); i++) {
-      var join = joinsList.get(i);
-      builder.add("  new $T(\n", CriteriaJoinInfo.class);
-      builder.add("    $S,\n", join.path());
-      builder.add("    $T.$L\n", JoinType.class, join.type());
-      builder.add(i < joinsList.size() - 1 ? "  ),\n" : "  )\n");
-    }
-
-    builder.add("))");
-    return builder.build();
-  }
 }

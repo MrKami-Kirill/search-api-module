@@ -14,13 +14,18 @@ import java.util.Objects;
 public record NativeSearchAttribute(
     @NotNull(message = "Поле attributes.attributeType не может быть null")
     AttributeType attributeType,
+
     @NotBlank(message = "Поле attributes.jsonField не может быть пустым")
     String jsonField,
+
     @NotBlank(message = "Поле attributes.dbField не может быть пустым")
     String dbField,
+
     String dbTableAlias,
+
     @NotNull(message = "Поле attributes.fieldType не может быть null")
     Class<?> fieldType,
+
     @Valid
     LinkedHashSet<JoinInfo> joinInfo) {
 

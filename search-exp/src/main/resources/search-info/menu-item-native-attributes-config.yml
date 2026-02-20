@@ -3,39 +3,48 @@ attributes:
     jsonField: id
     dbField: id
     fieldType: java.lang.Long
+
   - attributeType: SIMPLE
     jsonField: title
     dbField: title
     fieldType: java.lang.String
+
   - attributeType: SIMPLE
     jsonField: path
     dbField: path
     fieldType: java.lang.String
+
   - attributeType: SIMPLE
     jsonField: isActive
     dbField: is_active
     fieldType: java.lang.Boolean
+
   - attributeType: SIMPLE
     jsonField: inheritParentPermissions
     dbField: inherit_parent_permissions
     fieldType: java.lang.Boolean
+
   - attributeType: SIMPLE
     jsonField: availableEveryone
     dbField: available_everyone
     fieldType: java.lang.Boolean
+
   - attributeType: SIMPLE
     jsonField: createDate
     dbField: create_date
     fieldType: java.time.OffsetDateTime
+
   - attributeType: SIMPLE
     jsonField: lastUpdateDate
     dbField: last_update_date
     fieldType: java.time.OffsetDateTime
+
   - attributeType: MULTIPLE
     jsonField: attachmentFileName
     dbField: file_name
     dbTableAlias: da
     fieldType: java.lang.String
+
     joinInfo:
       - order: 1
         reference:
@@ -57,6 +66,7 @@ attributes:
           alias: da
           column: document_id
         type: LEFT_JOIN
+
   - attributeType: MULTIPLE
     jsonField: attachmentExtension
     dbField: extension
@@ -83,6 +93,7 @@ attributes:
           alias: da
           column: document_id
         type: LEFT_JOIN
+
   - attributeType: MULTIPLE
     jsonField: documentId
     dbField: id

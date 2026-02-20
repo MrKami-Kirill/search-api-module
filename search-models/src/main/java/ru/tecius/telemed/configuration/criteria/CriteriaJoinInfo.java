@@ -4,13 +4,10 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-/**
- * Информация о join для Criteria API.
- * Описывает путь к связанной сущности в JPA модели.
- */
 public record CriteriaJoinInfo(
     @NotBlank(message = "Поле attribute.joinInfo.path не может быть пустым")
     String path,
+
     @NotNull(message = "Поле attribute.joinInfo.type не может быть null")
     JoinType type
 ) {

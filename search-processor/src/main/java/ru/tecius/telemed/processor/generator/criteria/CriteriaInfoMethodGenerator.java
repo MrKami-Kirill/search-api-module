@@ -2,25 +2,19 @@ package ru.tecius.telemed.processor.generator.criteria;
 
 import static javax.lang.model.element.Modifier.PUBLIC;
 
-import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import java.util.Optional;
 import java.util.Set;
-import ru.tecius.telemed.configuration.criteria.CriteriaJoinInfo;
 import ru.tecius.telemed.configuration.criteria.CriteriaSearchAttribute;
 
-/**
- * Генератор методов для CriteriaInfoInterface.
- */
 public class CriteriaInfoMethodGenerator {
 
   public void addInterfaceMethods(TypeSpec.Builder classBuilder) {
     addGetEntityClassMethod(classBuilder);
     addGetCriteriaAttributesMethod(classBuilder);
     addGetCriteriaAttributeByJsonFieldMethod(classBuilder);
-    addGetAllJoinsMethod(classBuilder);
   }
 
   private void addGetEntityClassMethod(TypeSpec.Builder classBuilder) {
@@ -54,12 +48,4 @@ public class CriteriaInfoMethodGenerator {
         .build());
   }
 
-  private void addGetAllJoinsMethod(TypeSpec.Builder classBuilder) {
-    classBuilder.addMethod(MethodSpec.methodBuilder("getAllJoins")
-        .addAnnotation(Override.class)
-        .addModifiers(PUBLIC)
-        .returns(ParameterizedTypeName.get(Set.class, CriteriaJoinInfo.class))
-        .addStatement("return ALL_JOINS")
-        .build());
-  }
 }
