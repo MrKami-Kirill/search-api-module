@@ -1,9 +1,6 @@
 package ru.tecius.telemed.util;
 
 import static java.time.format.DateTimeFormatter.ofPattern;
-import static util.Constants.BIRTHDAY_DATE_FORMAT;
-import static util.Constants.ISO_DATE_FORMAT;
-import static util.Constants.LOCAL_DATE_TIME_FORMAT;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,6 +11,10 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class Constants {
+
+  public static final String ISO_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX";
+  public static final String LOCAL_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+  public static final String BIRTHDAY_DATE_FORMAT = "yyyy-MM-dd";
 
   public static final String INVALID_VALUE_FORMAT_ERROR_TEMPLATE =
       "Переданное значение %s не соответствует формату %s";
