@@ -168,10 +168,7 @@ public abstract class AbstractNativeSqlSqlService<E> {
 
   private String buildSimpleCondition(String dbField, Operator operator, List<String> values,
       List<Object> params, Class<?> fieldType) {
-    if (!operator.validate(values)) {
-      throw new ValidationException("Для оператора %s переданы некорректные value"
-          .formatted(operator.name()));
-    }
+    operator.checkValue(values);
 
     var condition = operator.buildNativeCondition(dbField, values);
     params.addAll(operator.getTransformValueFunction().apply(values, fieldType));

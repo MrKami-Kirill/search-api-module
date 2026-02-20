@@ -114,8 +114,11 @@ public enum Operator {
 //  private final BiFunction<List<String>, Pair<FieldType, CriteriaBuilder>, Object>
 //      criteriaTransformFunction;
 
-  public boolean validate(List<String> values) {
-    return valuePredicate.test(values);
+  public void checkValue(List<String> values) {
+    if (!valuePredicate.test(values)) {
+      throw new ValidationException("Для оператора %s переданы некорректные value"
+          .formatted(name()));
+    }
   }
 
   public String buildNativeCondition(String dbField, List<String> values) {

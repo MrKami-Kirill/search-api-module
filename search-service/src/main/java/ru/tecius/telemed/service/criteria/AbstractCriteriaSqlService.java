@@ -7,6 +7,7 @@ import static java.util.Objects.nonNull;
 import static org.apache.commons.collections4.CollectionUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static ru.tecius.telemed.dto.request.Direction.ASC;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -312,10 +313,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       List<String> values,
       Class<?> fieldType
   ) {
-    if (!operator.validate(values)) {
-      throw new ValidationException("Для оператора %s переданы некорректные value"
-          .formatted(operator.name()));
-    }
+    operator.checkValue(values);
 
     var transformedValues = operator.getTransformValueFunction().apply(values, fieldType);
 
@@ -403,6 +401,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       case Class<?> c when c == Long.class -> Long.parseLong(value);
       case Class<?> c when c == Integer.class -> Integer.parseInt(value);
       case Class<?> c when c == Double.class -> Double.parseDouble(value);
+      case Class<?> c when c == Float.class -> Float.parseFloat(value);
       case Class<?> c when c == Boolean.class -> Boolean.parseBoolean(value);
       default -> value;
     };
@@ -457,7 +456,7 @@ public abstract class AbstractCriteriaSqlService<E> {
 
       var path = buildPathFromAttribute(root, attribute, joinContext);
 
-      var order = sortDto.direction() == ru.tecius.telemed.dto.request.Direction.ASC
+      var order = sortDto.direction() == ASC
           ? cb.asc(path)
           : cb.desc(path);
 
