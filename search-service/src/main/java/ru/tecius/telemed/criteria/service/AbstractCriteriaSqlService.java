@@ -163,9 +163,6 @@ public abstract class AbstractCriteriaSqlService<E> {
       // Hibernate объединит fetch с существующим join, если это возможно.
       var fetch = currentFetch.fetch(joinInfo.path(), JoinType.LEFT);
 
-      // Отмечаем этот path как fetched (для entity graph)
-      joinContext.markAsFetched(currentPath);
-
       if (fetch instanceof Join<?, ?> join) {
         // Обновляем/добавляем в контекст, чтобы buildOrders мог найти этот Path
         joinContext.addJoin(currentPath, join);
@@ -194,7 +191,7 @@ public abstract class AbstractCriteriaSqlService<E> {
       var joinPath = joinInfo.path();
 
       // Проверяем, не добавляли ли мы уже такой join (включая fetched joins)
-      if (!joinContext.hasJoin(currentPath)) {
+      if (joinContext.hasNotJoin(currentPath)) {
         var join = currentFrom.join(joinPath, joinInfo.type());
         joinContext.addJoin(currentPath, join);
         // Определяем, является ли этот join коллекцией (@OneToMany, @ManyToMany, @ElementCollection)
@@ -328,7 +325,7 @@ public abstract class AbstractCriteriaSqlService<E> {
 
       entityGraphs.forEach(entityGraph -> {
         // Проверяем, не был ли этот путь уже загружен через fetch join
-        if (!joinContext.isFetched(entityGraph)) {
+        if (joinContext.hasNotJoin(entityGraph)) {
           addSubgraphToEntityGraph(graph, entityGraph);
         }
       });

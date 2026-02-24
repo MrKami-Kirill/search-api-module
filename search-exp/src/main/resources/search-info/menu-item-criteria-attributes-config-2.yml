@@ -170,6 +170,23 @@ attributes:
           type: LEFT
       type: java.lang.String
 
+  - type: MULTIPLE
+    json:
+      key: userPermissionId
+    db:
+      column: id
+      joinInfo:
+        - order: 1
+          path: permissions
+          type: LEFT
+        - order: 2
+          path: group
+          type: LEFT
+        - order: 3
+          path: users
+          type: LEFT
+      type: java.lang.String
+
   # === ПРИМЕЧАНИЯ ===
   #
   # 1. Формат конфигурации:

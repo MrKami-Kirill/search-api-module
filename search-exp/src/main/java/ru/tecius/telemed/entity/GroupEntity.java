@@ -1,15 +1,16 @@
 package ru.tecius.telemed.entity;
 
-import static jakarta.persistence.CascadeType.ALL;
 import static jakarta.persistence.FetchType.LAZY;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -62,8 +63,10 @@ public class GroupEntity {
   private OffsetDateTime lastUpdateDate;
 
   @Fetch(FetchMode.SUBSELECT)
-  @OneToMany(mappedBy = "group", fetch = LAZY, cascade = ALL, orphanRemoval = true)
-  @Builder.Default
-  private Set<UserGroupEntity> userGroups = new HashSet<>();
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(name = "users_groups",
+      joinColumns = @JoinColumn(name = "group_id"),
+      inverseJoinColumns = @JoinColumn(name = "user_id"))
+  private Set<UserEntity> users = new HashSet<>();
 
 }

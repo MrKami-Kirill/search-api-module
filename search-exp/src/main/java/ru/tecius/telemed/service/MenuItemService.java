@@ -92,6 +92,13 @@ public class MenuItemService {
           ],
           "searchData": [
             {
+              "attribute": "userPermissionId",
+              "value": [
+                "138"
+              ],
+              "operator": "EQUAL"
+            },
+            {
               "attribute": "isActive",
               "value": [
                 "true"
@@ -108,7 +115,7 @@ public class MenuItemService {
             {
               "attribute": "documentId",
               "value": [
-                "46",
+                "39",
                 "69"
               ],
               "operator": "BETWEEN"
@@ -131,10 +138,10 @@ public class MenuItemService {
         }
         """, SearchRequestDto.class);
     // Пример 1: JDBC Native SQL
-    //var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination(), true);
+    // var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination(), true);
 
     // Пример 2: JPA Native SQL
-    //var result2 = jpaNativeSqlService.search(request.searchData(), request.sort(), request.pagination(), false);
+    // var result2 = jpaNativeSqlService.search(request.searchData(), request.sort(), request.pagination(), false);
 
     // Пример 3: Criteria API
     var result3 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination(), false);
@@ -142,7 +149,7 @@ public class MenuItemService {
     // Пример 4: Criteria API (Entity Graphs)
     var result4 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination(),
         HintName.FETCH_GRAPH,
-        Set.of("document.comments", "document.attachments"), true);
+        Set.of("document.comments", "document.attachments", "creator", "permissions"), true);
 
     return result4;
   }
