@@ -1,9 +1,13 @@
 package ru.tecius.telemed.criteria.service;
 
+import static java.util.Collections.emptySet;
+
 import jakarta.persistence.EntityManager;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import ru.tecius.telemed.common.criteria.CriteriaInfoInterface;
+import ru.tecius.telemed.common.criteria.HintName;
 import ru.tecius.telemed.dto.request.PaginationDto;
 import ru.tecius.telemed.dto.request.SearchDataDto;
 import ru.tecius.telemed.dto.request.SortDto;
@@ -13,29 +17,46 @@ public class CriteriaEntityService<E> extends AbstractCriteriaSqlService<E> {
 
   public CriteriaEntityService(
       EntityManager entityManager,
-      CriteriaInfoInterface<E> criteriaInfo
+      CriteriaInfoInterface<E> criteriaInfo,
+      Long defaultPageSize
   ) {
-    super(entityManager, criteriaInfo);
+    super(entityManager, criteriaInfo, defaultPageSize);
   }
 
   public SearchResponseDto<E> search(
       List<SearchDataDto> searchData,
       LinkedList<SortDto> sort,
-      PaginationDto pagination
+      PaginationDto pagination,
+      boolean needCalculateCount
+  ) {
+    return search(searchData, sort, pagination, null, emptySet(), needCalculateCount);
+  }
+
+  public SearchResponseDto<E> search(
+      List<SearchDataDto> searchData,
+      LinkedList<SortDto> sort,
+      PaginationDto pagination,
+      HintName hintName,
+      Set<String> entityGraphs,
+      boolean needCalculateCount
   ) {
     var cb = entityManager.getCriteriaBuilder();
 
+
     // Сначала считаем общее количество
-    var count = executeCountQuery(cb, searchData);
+    var totalElements = 0L;
+    if (needCalculateCount) {
+      totalElements = executeCountQuery(cb, searchData);
+    }
 
-    // Затем выполняем основной запрос
-    var content = executeSearchQuery(cb, searchData, sort, pagination);
+    // Затем выполняем основной запрос с entity graph
+    var content = executeSearchQuery(cb, searchData, sort, pagination, hintName, entityGraphs);
 
-    var pageSize = getPageSize(pagination, 10);
-    var totalPages = calculateTotalPages(count, pageSize);
+    var pageSize = getPageSize(pagination);
+    var totalPages = calculateTotalPages(totalElements, pageSize);
     Boolean moreRows = calculateMoreRows(pagination, totalPages);
 
-    return new SearchResponseDto<>(count.intValue(), totalPages, moreRows, content);
+    return new SearchResponseDto<>(totalElements, totalPages, moreRows, content);
   }
 
 }

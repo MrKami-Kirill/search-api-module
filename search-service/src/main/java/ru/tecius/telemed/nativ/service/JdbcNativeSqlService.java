@@ -18,20 +18,23 @@ public class JdbcNativeSqlService<E> extends AbstractNativeSqlService<E> {
   public JdbcNativeSqlService(
       JdbcTemplate jdbcTemplate,
       RowMapper<E> rowMapper,
-      SearchInfoInterface<E> searchInfoInterface
+      SearchInfoInterface<E> searchInfoInterface,
+      Long defaultPageSize
+
   ) {
-    super(searchInfoInterface);
+    super(searchInfoInterface, defaultPageSize);
     this.jdbcTemplate = jdbcTemplate;
     this.rowMapper = rowMapper;
   }
 
   public SearchResponseDto<E> search(List<SearchDataDto> searchData, LinkedList<SortDto> sort,
-      PaginationDto pagination) {
+      PaginationDto pagination, boolean needCalculateCount) {
     return search(searchData, sort, pagination,
         (countSql, params) -> jdbcTemplate.queryForObject(countSql,
-            Integer.class, params.toArray()),
+            Long.class, params.toArray()),
         (sql, params) -> jdbcTemplate.query(sql,
-            rowMapper, params.toArray()));
+            rowMapper, params.toArray()),
+        needCalculateCount);
   }
 
 }

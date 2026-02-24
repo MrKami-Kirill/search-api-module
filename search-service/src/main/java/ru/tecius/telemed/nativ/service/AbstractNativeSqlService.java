@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import ru.tecius.telemed.common.nativ.SearchInfoInterface;
@@ -25,30 +24,37 @@ import ru.tecius.telemed.dto.response.SearchResponseDto;
 public abstract class AbstractNativeSqlService<E> {
 
   private final SearchInfoInterface<E> searchInfoInterface;
+  private final Long defaultPageSize;
 
-  protected AbstractNativeSqlService(SearchInfoInterface<E> searchInfoInterface) {
+  protected AbstractNativeSqlService(SearchInfoInterface<E> searchInfoInterface,
+      Long defaultPageSize) {
     this.searchInfoInterface = searchInfoInterface;
+    this.defaultPageSize = defaultPageSize;
   }
 
   protected SearchResponseDto<E> search(List<SearchDataDto> searchData,
       LinkedList<SortDto> sort,
       PaginationDto pagination,
-      BiFunction<String, LinkedList<Object>, Integer> totalElementsFunction,
-      BiFunction<String, LinkedList<Object>, List<E>> contentFunction) {
+      BiFunction<String, LinkedList<Object>, Long> totalElementsFunction,
+      BiFunction<String, LinkedList<Object>, List<E>> contentFunction,
+      boolean needCalculateCount) {
     var params = new LinkedList<>();
     var sqlBuilder = buildBaseQuery(searchData, sort, params);
 
-    var countSql = buildCountQuery(sqlBuilder.toString());
-    var totalElements = totalElementsFunction.apply(countSql, params);
+    var totalElements = 0L;
+    if (needCalculateCount) {
+      var countSql = buildCountQuery(sqlBuilder.toString());
+      totalElements = totalElementsFunction.apply(countSql, params);
+    }
 
     addOrderBy(sqlBuilder, sort);
 
-    var pageSize = getPageSize(pagination, 10);
+    var pageSize = getPageSize(pagination);
     addPagination(sqlBuilder, params, pagination, pageSize);
 
     var content = contentFunction.apply(sqlBuilder.toString(), params);
 
-    var totalPages = calculateTotalPages(totalElements, content.size());
+    var totalPages = calculateTotalPages(totalElements, (long) content.size());
     Boolean moreRows = calculateMoreRows(pagination, totalPages);
 
     return new SearchResponseDto<>(totalElements, totalPages, moreRows, content);
@@ -95,12 +101,12 @@ public abstract class AbstractNativeSqlService<E> {
         extractFromWithJoinsAndWhere(sql));
   }
 
-  private Integer getPageSize(PaginationDto pagination, Integer defaultPageSize) {
+  private Long getPageSize(PaginationDto pagination) {
     return nonNull(pagination) && nonNull(pagination.page()) ? pagination.size() : defaultPageSize;
   }
 
   private void addPagination(StringBuilder sqlBuilder, LinkedList<Object> params,
-      PaginationDto pagination, Integer limit) {
+      PaginationDto pagination, Long limit) {
     if (nonNull(pagination)) {
       var offset = nonNull(pagination.page()) ? pagination.page() * limit : 0;
       sqlBuilder.append("LIMIT ? OFFSET ?");
@@ -119,14 +125,14 @@ public abstract class AbstractNativeSqlService<E> {
     }
   }
 
-  private int calculateTotalPages(Integer totalElements, int pageSize) {
-    return totalElements != null
-        ? (int) Math.ceil((double) totalElements / pageSize)
-        : 0;
+  private Long calculateTotalPages(Long totalElements, Long pageSize) {
+    return nonNull(totalElements)
+        ? (long) Math.ceil((double) totalElements / pageSize)
+        : 0L;
   }
 
-  private boolean calculateMoreRows(PaginationDto pagination, int totalPages) {
-    return pagination != null && pagination.page() != null
+  private boolean calculateMoreRows(PaginationDto pagination, Long totalPages) {
+    return nonNull(pagination) && nonNull(pagination.page())
         && (pagination.page() + 1) < totalPages;
   }
 
@@ -169,7 +175,6 @@ public abstract class AbstractNativeSqlService<E> {
   private String buildOrder(LinkedList<SortDto> sort) {
     var orderByParts = sort.stream()
         .map(this::buildOrder)
-        .filter(Objects::nonNull)
         .toList();
 
     if (orderByParts.isEmpty()) {

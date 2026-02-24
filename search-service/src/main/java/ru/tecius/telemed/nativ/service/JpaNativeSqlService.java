@@ -1,5 +1,6 @@
 package ru.tecius.telemed.nativ.service;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,32 +13,33 @@ import ru.tecius.telemed.dto.response.SearchResponseDto;
 public class JpaNativeSqlService<E> extends AbstractNativeSqlService<E> {
 
   private final Class<E> cls;
-  private final jakarta.persistence.EntityManager entityManager;
+  private final EntityManager entityManager;
 
   public JpaNativeSqlService(
       Class<E> cls,
-      jakarta.persistence.EntityManager entityManager,
-      SearchInfoInterface<E> searchInfoInterface
+      EntityManager entityManager,
+      SearchInfoInterface<E> searchInfoInterface,
+      Long defaultPageSize
   ) {
-    super(searchInfoInterface);
+    super(searchInfoInterface, defaultPageSize);
     this.cls = cls;
     this.entityManager = entityManager;
   }
 
   @SuppressWarnings("unchecked")
   public SearchResponseDto<E> search(List<SearchDataDto> searchData, LinkedList<SortDto> sort,
-      PaginationDto pagination) {
+      PaginationDto pagination, boolean needCalculateCount) {
     return search(searchData, sort, pagination,
         (countSql, params) -> {
-          var countQuery = entityManager.createNativeQuery(countSql, Integer.class);
+          var countQuery = entityManager.createNativeQuery(countSql, Long.class);
           setQueryParameters(countQuery, params);
-          return (Integer) countQuery.getSingleResult();
+          return (Long) countQuery.getSingleResult();
         },
         (sql, params) -> {
           var query = entityManager.createNativeQuery(sql, cls);
           setQueryParameters(query, params);
           return query.getResultList();
-        });
+        }, needCalculateCount);
   }
 
   private void setQueryParameters(Query query, List<Object> params) {

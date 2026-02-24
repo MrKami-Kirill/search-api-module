@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import lombok.SneakyThrows;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +13,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.tecius.telemed.common.criteria.HintName;
+import ru.tecius.telemed.criteria.service.CriteriaEntityService;
 import ru.tecius.telemed.dto.request.SearchRequestDto;
 import ru.tecius.telemed.dto.response.SearchResponseDto;
 import ru.tecius.telemed.entity.MenuItemEntity;
 import ru.tecius.telemed.entity.MenuItemEntityCriteriaSearchInfo;
 import ru.tecius.telemed.entity.MenuItemEntityNativeSearchInfo;
-import ru.tecius.telemed.criteria.service.CriteriaEntityService;
 import ru.tecius.telemed.nativ.service.JdbcNativeSqlService;
 import ru.tecius.telemed.nativ.service.JpaNativeSqlService;
 
@@ -52,17 +54,19 @@ public class MenuItemService {
     var menuItemEntityNativeSearchInfo = new MenuItemEntityNativeSearchInfo();
     this.jdbcNativeSqlService = new JdbcNativeSqlService<>(jdbcTemplate,
         menuItemRowMapper,
-        menuItemEntityNativeSearchInfo);
+        menuItemEntityNativeSearchInfo, 10L);
 
     this.jpaNativeSqlService = new JpaNativeSqlService<>(
         MenuItemEntity.class,
         entityManager,
-        menuItemEntityNativeSearchInfo
+        menuItemEntityNativeSearchInfo,
+        10L
     );
 
     this.criteriaEntityService = new CriteriaEntityService<>(
         entityManager,
-        menuItemEntityCriteriaSearchInfo
+        menuItemEntityCriteriaSearchInfo,
+        10L
     );
     this.objectMapper = objectMapper;
   }
@@ -91,13 +95,6 @@ public class MenuItemService {
               "attribute": "isActive",
               "value": [
                 "true"
-              ],
-              "operator": "EQUAL"
-            },
-                        {
-              "attribute": "isActive",
-              "value": [
-                "false"
               ],
               "operator": "EQUAL"
             },
@@ -134,14 +131,19 @@ public class MenuItemService {
         }
         """, SearchRequestDto.class);
     // Пример 1: JDBC Native SQL
-    var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    //var result1 = jdbcNativeSqlService.search(request.searchData(), request.sort(), request.pagination(), true);
 
     // Пример 2: JPA Native SQL
-    var result2 = jpaNativeSqlService.search(request.searchData(), request.sort(), request.pagination());
+    //var result2 = jpaNativeSqlService.search(request.searchData(), request.sort(), request.pagination(), false);
 
     // Пример 3: Criteria API
-    var result3 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination());
+    var result3 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination(), false);
 
-    return result3;
+    // Пример 4: Criteria API (Entity Graphs)
+    var result4 = criteriaEntityService.search(request.searchData(), request.sort(), request.pagination(),
+        HintName.FETCH_GRAPH,
+        Set.of("document.comments", "document.attachments"), true);
+
+    return result4;
   }
 }
